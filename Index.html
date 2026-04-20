@@ -72,6 +72,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
 .bud-input{width:100%;background:transparent;border:none;font-size:12px;text-align:right;outline:none;font-family:inherit;color:#202124;}
 .bud-input:focus{background:#e8f0fe;border-radius:3px;}
 .sk-manage-row{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.sk-manage-row.clickable{cursor:pointer;}.sk-manage-row.clickable:hover{border-color:#1a73e8;}
 .sk-key{font-size:12px;font-weight:bold;background:#e8f0fe;color:#1a73e8;padding:3px 9px;border-radius:6px;}
 .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
 .dot-g{background:#0f9d58;}
@@ -709,7 +710,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
       </div>
     </div>
     <div id="watchForm" class="watch-form" style="display:none;">
-      <div style="font-size:13px;font-weight:bold;margin-bottom:10px;">New watch rule</div>
+      <div id="watchFormTitle" style="font-size:13px;font-weight:bold;margin-bottom:10px;">New watch rule</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
         <div>
           <label class="form-label">Search term</label>
@@ -731,7 +732,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
           <label class="form-label">Label (optional)</label>
           <input type="text" id="watchLabel" placeholder="Friendly name" style="width:160px;">
         </div>
-        <button class="btn btn-primary btn-sm" onclick="addWatchRule()">Add</button>
+        <button class="btn btn-primary btn-sm" id="watchFormBtn" onclick="saveWatchFormRule()">Add</button>
         <button class="btn btn-sm" onclick="toggleAddWatch()">Cancel</button>
       </div>
       <div id="watchFormErr" style="display:none;margin-top:8px;"></div>
@@ -1275,7 +1276,12 @@ function renderBudgetList(result, fy) {
   for (var i = 0; i < result.budgets.length; i++) {
     (function(b) {
       var row = document.createElement('div');
-      row.className = 'sk-manage-row';
+      row.className = 'sk-manage-row' + (b.exists ? ' clickable' : '');
+      if (b.exists) {
+        row.onclick = (function(sk, y) {
+          return function() { drillToBudgetEditor(sk, y); };
+        })(b.suiteKey, fy);
+      }
       var info = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
       info += '<span class="dot ' + (b.exists ? 'dot-g' : 'dot-gray') + '"></span>';
       info += '<span class="sk-key">' + b.suiteKey + '</span>';
@@ -1284,9 +1290,9 @@ function renderBudgetList(result, fy) {
       else info += '<span style="font-size:10px;color:#80868b;">Owner: ' + b.ownerEmail + '</span>';
       info += '</div>';
       var btns = '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
-      if (b.exists) btns += '<button class="btn btn-sm" onclick="drillToBudgetEditor(\'' + b.suiteKey + '\',' + fy + ')">' + (b.isOwner ? 'Edit' : 'View') + '</button>';
-      if (b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-red" onclick="removeAddon(\'' + b.suiteKey + '\',' + fy + ',this)">Archive and remove</button>';
-      if (!b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-green" onclick="createAndDrillBudget(\'' + b.suiteKey + '\',' + fy + ',this)">Create budget</button>';
+      if (b.exists) btns += '<button class="btn btn-sm">View / Edit</button>';
+      if (b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-red" onclick="event.stopPropagation();removeAddon(\'' + b.suiteKey + '\',' + fy + ',this)">Archive and remove</button>';
+      if (!b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-green" onclick="event.stopPropagation();createAndDrillBudget(\'' + b.suiteKey + '\',' + fy + ',this)">Create budget</button>';
       btns += '</div>';
       row.innerHTML = info + btns;
       list.appendChild(row);
@@ -1700,6 +1706,7 @@ function renderWatchRules(results) {
       h += '<div style="text-align:right;"><div style="font-size:20px;font-weight:bold;">' + fmt(Math.abs(res.total)) + '</div>';
       h += '<div style="font-size:11px;color:#5f6368;">' + res.count + ' transaction' + (res.count !== 1 ? 's' : '') + '</div>';
       h += '<div style="font-size:10px;color:#80868b;margin-top:3px;">Click to see transactions</div></div>';
+      h += '<button class="btn btn-sm" onclick="event.stopPropagation();editWatchRule(\'' + rule.id + '\')">Edit rule</button>';
       h += '<button class="btn btn-sm btn-red" onclick="event.stopPropagation();confirmDeleteWatchRule(\'' + rule.id + '\',\'' + label.replace(/'/g, "\\'") + '\')">Remove rule</button>';
       h += '</div>';
       card.innerHTML = h;
@@ -1761,23 +1768,60 @@ function watchGoBack() {
   activeWatchRule = null;
 }
 
+var editingWatchRuleId = null;
+
 function toggleAddWatch() {
   var f = document.getElementById('watchForm');
+  if (f.style.display === 'none') {
+    editingWatchRuleId = null;
+    document.getElementById('watchTerm').value = '';
+    document.getElementById('watchField').value = 'both';
+    document.getElementById('watchSKSel').value = '';
+    document.getElementById('watchLabel').value = '';
+    setText('watchFormTitle', 'New watch rule');
+    setText('watchFormBtn', 'Add');
+    hide('watchFormErr');
+  }
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 
-function addWatchRule() {
+function editWatchRule(id) {
+  var rule = null;
+  for (var i = 0; i < watchRules.length; i++) {
+    if (watchRules[i].id === id) { rule = watchRules[i]; break; }
+  }
+  if (!rule) return;
+  editingWatchRuleId = id;
+  document.getElementById('watchTerm').value = rule.term;
+  document.getElementById('watchField').value = rule.field || 'both';
+  document.getElementById('watchSKSel').value = rule.suiteKey || '';
+  document.getElementById('watchLabel').value = rule.label || '';
+  setText('watchFormTitle', 'Edit watch rule');
+  setText('watchFormBtn', 'Save changes');
+  hide('watchFormErr');
+  document.getElementById('watchForm').style.display = 'block';
+}
+
+function saveWatchFormRule() {
   var term = document.getElementById('watchTerm').value.trim();
   hide('watchFormErr');
   if (!term) { showErr('watchFormErr', 'Search term is required.'); return; }
   var rule = {
-    id: String(Date.now()),
+    id: editingWatchRuleId || String(Date.now()),
     term: term,
     field: document.getElementById('watchField').value,
     suiteKey: document.getElementById('watchSKSel').value,
     label: document.getElementById('watchLabel').value.trim()
   };
-  watchRules.push(rule);
+  var prevRules = watchRules.slice();
+  if (editingWatchRuleId) {
+    for (var i = 0; i < watchRules.length; i++) {
+      if (watchRules[i].id === editingWatchRuleId) { watchRules[i] = rule; break; }
+    }
+  } else {
+    watchRules.push(rule);
+  }
+  editingWatchRuleId = null;
   google.script.run
     .withSuccessHandler(function() {
       document.getElementById('watchTerm').value = '';
@@ -1786,7 +1830,7 @@ function addWatchRule() {
       hide('watchEmpty');
       loadWatchData();
     })
-    .withFailureHandler(function(e) { watchRules.pop(); showErr('watchFormErr', e.message); })
+    .withFailureHandler(function(e) { watchRules = prevRules; showErr('watchFormErr', e.message); })
     .saveWatchRules(watchRules);
 }
 
