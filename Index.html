@@ -1632,7 +1632,7 @@ function renderWatchRules(results) {
       h += '<div style="text-align:right;"><div style="font-size:20px;font-weight:bold;">' + fmt(Math.abs(res.total)) + '</div>';
       h += '<div style="font-size:11px;color:#5f6368;">' + res.count + ' transaction' + (res.count !== 1 ? 's' : '') + '</div>';
       h += '<div style="font-size:10px;color:#80868b;margin-top:3px;">Click to see transactions</div></div>';
-      h += '<button class="btn btn-sm btn-red" onclick="event.stopPropagation();deleteWatchRule(\'' + rule.id + '\')">Remove</button>';
+      h += '<button class="btn btn-sm btn-red" onclick="event.stopPropagation();confirmDeleteWatchRule(\'' + rule.id + '\',\'' + label.replace(/'/g, "\\'") + '\')">Remove rule</button>';
       h += '</div>';
       card.innerHTML = h;
       card.onclick = (function(r, rv) { return function() { drillToWatchTxns(r, rv); }; })(rule, res);
@@ -1720,6 +1720,11 @@ function addWatchRule() {
     })
     .withFailureHandler(function(e) { watchRules.pop(); showErr('watchFormErr', e.message); })
     .saveWatchRules(watchRules);
+}
+
+function confirmDeleteWatchRule(id, label) {
+  if (!confirm('Remove the watch rule "' + label + '"?')) return;
+  deleteWatchRule(id);
 }
 
 function deleteWatchRule(id) {
