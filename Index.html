@@ -203,10 +203,10 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
   </div>
   <div id="dashL2" style="display:none;">
     <div class="back-bar">
-      <button class="btn btn-sm" onclick="goBack(1)">Back</button>
-      <div>
-        <div class="breadcrumb">Overview</div>
-        <div style="font-size:16px;font-weight:bold;" id="l2Title"></div>
+      <div class="crumb-trail">
+        <span class="crumb-link" onclick="goBack(1)">Dashboard</span>
+        <span class="crumb-sep">›</span>
+        <span class="crumb-cur" id="l2Title"></span>
       </div>
       <span id="l2RoBadge" class="badge b-ro" style="display:none;">View only</span>
       <div style="margin-left:auto;">
@@ -253,10 +253,12 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
   </div>
   <div id="dashL3" style="display:none;">
     <div class="back-bar">
-      <button class="btn btn-sm" onclick="goBack(2)">Back</button>
-      <div>
-        <div class="breadcrumb" id="l3Crumb">-</div>
-        <div style="font-size:16px;font-weight:bold;" id="l3Title"></div>
+      <div class="crumb-trail">
+        <span class="crumb-link" onclick="goBack(1)">Dashboard</span>
+        <span class="crumb-sep">›</span>
+        <span class="crumb-link" id="l3SK" onclick="goBack(2)"></span>
+        <span class="crumb-sep">›</span>
+        <span class="crumb-cur" id="l3Title"></span>
       </div>
     </div>
     <div class="summary-strip">
@@ -859,6 +861,14 @@ function onInitialData(data) {
     showErr('dashErr', 'Cannot read the permissions data. Ask Finance to go to Settings and click "Sync permissions cache", then reload.');
     return;
   }
+  if (data.skError === 'fatal_error') {
+    showErr('dashErr', 'Failed to load: ' + (data._error || 'unknown error') + '. Contact IT support.');
+    return;
+  }
+  if (data.glError) {
+    var glUrl = 'https://docs.google.com/spreadsheets/d/' + data.glError.id;
+    showErr('dashErr', 'Cannot open your GL sheet &mdash; <a href="' + glUrl + '" target="_blank">open it in Sheets</a> to check access, then reload. Details: ' + data.glError.message);
+  }
   if (!data.suiteKeys || !data.suiteKeys.length) { show('dashNoSK'); return; }
   suiteKeys = data.suiteKeys;
   show('dashL1');
@@ -1072,7 +1082,7 @@ function renderL2(rows) {
 
 function drillToL3(row, ci) {
   hide('dashL2'); show('dashL3');
-  setText('l3Crumb', activeSK + ' - ' + row.group);
+  setText('l3SK', activeSK);
   setText('l3Title', row.fullName);
   setText('l3Budget', fmt(Math.abs(row.budget)));
   var aEl = document.getElementById('l3Actuals');

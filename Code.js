@@ -145,6 +145,7 @@ function getInitialData() {
     const glTab = up.getProperty(UPROP_GL_TAB_NAME)   || '';
     const fySet = new Set([getCurrentFiscalYear()]);
     const mSet  = new Set();
+    let   glError = null;
 
     if (glId) {
       try {
@@ -167,6 +168,7 @@ function getInitialData() {
         log.push('gl_parse:' + (Date.now()-t0) + 'ms');
       } catch(e) {
         _glSheet = null; _glData = null;
+        glError = { id: glId, message: e.message };
         log.push('gl_err:' + e.message);
       }
     } else {
@@ -192,7 +194,7 @@ function getInitialData() {
 
     // Step 6: settings
     const settings = {
-      permissionsSheetId : permId,
+      permissionsSheetId : sp.getProperty(SPROP_PERMISSIONS_ID) || '',
       coaSheetId         : sp.getProperty(SPROP_COA_ID) || '',
       glSheetId          : glId,
       glTabName          : glTab,
@@ -202,7 +204,7 @@ function getInitialData() {
     log.push('done:' + (Date.now()-t0) + 'ms');
     console.log('getInitialData: ' + log.join(' | '));
 
-    return { periods, settings, suiteKeys, skError, currentFY: periods.currentFY, _log: log };
+    return { periods, settings, suiteKeys, skError, glError, currentFY: periods.currentFY, _log: log };
 
   } catch(e) {
     console.error('getInitialData FATAL: ' + e.message + ' | log: ' + log.join(' | '));
@@ -569,7 +571,8 @@ function readBudgetSheet(suiteKey, fiscalYear) {
   let ss;
   try { ss = SpreadsheetApp.openById(fileId); }
   catch(e) {
-    _budgetCache[cacheKey] = { rows: [], readonly: true, missing: true, error: e.message };
+    const detail = suiteKey + ' FY' + fy + ' (file ID: ' + fileId + '): ' + e.message;
+    _budgetCache[cacheKey] = { rows: [], readonly: true, missing: true, error: detail };
     return _budgetCache[cacheKey];
   }
 
