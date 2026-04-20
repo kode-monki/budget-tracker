@@ -131,8 +131,14 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
 .step-row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;}
 .step-num{background:#00A7E1;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;flex-shrink:0;margin-top:1px;}
 
-.watch-rule{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;}
+.watch-rule{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s;}
+.watch-rule:hover{border-color:#1a73e8;}
 .watch-form{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:12px;}
+.crumb-trail{display:flex;align-items:center;gap:6px;font-size:13px;}
+.crumb-sep{color:#bdc1c6;}
+.crumb-link{color:#1a73e8;cursor:pointer;}
+.crumb-link:hover{text-decoration:underline;}
+.crumb-cur{font-weight:bold;color:#202124;}
 
 </style>
 </head>
@@ -140,14 +146,14 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
 <div class="shell">
 
 <div class="nav">
-  <span class="nav-brand">Budget Tracker</span>
+  <span class="nav-brand"><img src="https://raw.githubusercontent.com/kode-monki/budget-tracker/main/budget-tracker-icon.png" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;">Budget Tracker</span>
   <div class="nav-tabs">
     <button class="nav-btn active" onclick="showPage('dash',this)">Dashboard</button>
+    <button class="nav-btn" onclick="showPage('watch',this)">Watchlist</button>
     <button class="nav-btn" onclick="showPage('budget',this)">Budget template</button>
     <button class="nav-btn" onclick="showPage('manage',this)">Manage</button>
     <button class="nav-btn" onclick="showPage('settings',this)">Settings</button>
     <button class="nav-btn" onclick="showPage('help',this)">Help</button>
-    <button class="nav-btn" onclick="showPage('watch',this)">Watchlist</button>
   </div>
   <div class="nav-end">
     <span id="userPill" class="pill pill-info" style="display:none;"></span>
@@ -644,60 +650,100 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
 </div>
 
 <div id="page-watch" class="page">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-    <div style="font-size:15px;font-weight:bold;">Watchlist</div>
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-      <div style="display:flex;border:1px solid #dadce0;border-radius:6px;overflow:hidden;" id="watchModeGrp">
-        <button style="background:#e8f0fe;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#1a73e8;font-weight:bold;" onclick="setWatchMode('fiscal_year',this)">Full year</button>
-        <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('quarter',this)">Quarter</button>
-        <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('month',this)">Month</button>
-        <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('custom',this)">Custom</button>
+
+  <div id="watchL1">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:bold;">Watchlist</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;border:1px solid #dadce0;border-radius:6px;overflow:hidden;" id="watchModeGrp">
+          <button style="background:#e8f0fe;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#1a73e8;font-weight:bold;" onclick="setWatchMode('fiscal_year',this)">Full year</button>
+          <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('quarter',this)">Quarter</button>
+          <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('month',this)">Month</button>
+          <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('custom',this)">Custom</button>
+        </div>
+        <select id="watchPeriodSel" onchange="loadWatchData()" style="width:auto;"></select>
+        <div id="watchCustomWrap" style="display:none;" class="date-wrap">
+          <input type="date" id="watchDateFrom" onchange="loadWatchData()">
+          <span style="font-size:12px;color:#5f6368;">to</span>
+          <input type="date" id="watchDateTo" onchange="loadWatchData()">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="toggleAddWatch()">+ Add rule</button>
       </div>
-      <select id="watchPeriodSel" onchange="loadWatchData()" style="width:auto;"></select>
-      <div id="watchCustomWrap" style="display:none;" class="date-wrap">
-        <input type="date" id="watchDateFrom" onchange="loadWatchData()">
-        <span style="font-size:12px;color:#5f6368;">to</span>
-        <input type="date" id="watchDateTo" onchange="loadWatchData()">
+    </div>
+    <div id="watchForm" class="watch-form" style="display:none;">
+      <div style="font-size:13px;font-weight:bold;margin-bottom:10px;">New watch rule</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div>
+          <label class="form-label">Search term</label>
+          <input type="text" id="watchTerm" placeholder="e.g. Amazon, John Smith" style="width:180px;">
+        </div>
+        <div>
+          <label class="form-label">Match in</label>
+          <select id="watchField" style="width:auto;">
+            <option value="both">Name &amp; Description</option>
+            <option value="name">Name only</option>
+            <option value="desc">Description only</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">SuiteKey</label>
+          <select id="watchSKSel" style="width:auto;"><option value="">Any</option></select>
+        </div>
+        <div>
+          <label class="form-label">Label (optional)</label>
+          <input type="text" id="watchLabel" placeholder="Friendly name" style="width:160px;">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="addWatchRule()">Add</button>
+        <button class="btn btn-sm" onclick="toggleAddWatch()">Cancel</button>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="toggleAddWatch()">+ Add rule</button>
+      <div id="watchFormErr" style="display:none;margin-top:8px;"></div>
+    </div>
+    <div id="watchLoading" class="loading" style="display:none;"><div class="spin"></div>Loading...</div>
+    <div id="watchErr" style="display:none;"></div>
+    <div id="watchList"></div>
+    <div id="watchEmpty" class="no-data" style="display:none;">
+      <h3>No watch rules yet</h3>
+      <p>Add a rule to track spending by vendor, person, or keyword across your GL transactions.</p>
+      <button class="btn btn-primary" onclick="toggleAddWatch()">+ Add rule</button>
     </div>
   </div>
-  <div id="watchForm" class="watch-form" style="display:none;">
-    <div style="font-size:13px;font-weight:bold;margin-bottom:10px;">New watch rule</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-      <div>
-        <label class="form-label">Search term</label>
-        <input type="text" id="watchTerm" placeholder="e.g. Amazon, John Smith" style="width:180px;">
+
+  <div id="watchL2" style="display:none;">
+    <div class="back-bar">
+      <button class="btn" style="font-size:13px;padding:7px 16px;font-weight:bold;" onclick="watchGoBack()">← Back</button>
+      <div class="crumb-trail">
+        <span class="crumb-link" onclick="watchGoBack()">Watchlist</span>
+        <span class="crumb-sep">›</span>
+        <span class="crumb-cur" id="watchL2Title"></span>
       </div>
-      <div>
-        <label class="form-label">Match in</label>
-        <select id="watchField" style="width:auto;">
-          <option value="both">Name &amp; Description</option>
-          <option value="name">Name only</option>
-          <option value="desc">Description only</option>
-        </select>
-      </div>
-      <div>
-        <label class="form-label">SuiteKey</label>
-        <select id="watchSKSel" style="width:auto;"><option value="">Any</option></select>
-      </div>
-      <div>
-        <label class="form-label">Label (optional)</label>
-        <input type="text" id="watchLabel" placeholder="Friendly name" style="width:160px;">
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="addWatchRule()">Add</button>
-      <button class="btn btn-sm" onclick="toggleAddWatch()">Cancel</button>
     </div>
-    <div id="watchFormErr" style="display:none;margin-top:8px;"></div>
+    <div class="summary-strip">
+      <div class="stat-box"><div class="stat-label">Total</div><div class="stat-val" id="watchTxnTotal">-</div></div>
+      <div class="stat-box"><div class="stat-label">Transactions</div><div class="stat-val" id="watchTxnCount">-</div></div>
+      <div class="stat-box"><div class="stat-label">Search term</div><div class="stat-val" style="font-size:14px;" id="watchTxnTerm">-</div></div>
+      <div class="stat-box"><div class="stat-label">Scope</div><div class="stat-val" style="font-size:14px;" id="watchTxnScope">-</div></div>
+    </div>
+    <div id="watchTxnLoading" class="loading"><div class="spin"></div>Loading transactions...</div>
+    <div id="watchTxnWrap" style="display:none;">
+      <div class="txn-panel">
+        <div style="max-height:520px;overflow-y:auto;">
+          <table class="txn-table">
+            <thead><tr>
+              <th style="width:90px;">Date</th>
+              <th style="width:80px;">Doc #</th>
+              <th>Description</th>
+              <th style="width:140px;">Name</th>
+              <th style="width:120px;" id="watchTxnSKHead">SuiteKey</th>
+              <th style="text-align:right;width:90px;">Amount</th>
+            </tr></thead>
+            <tbody id="watchTxnBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div id="watchTxnNone" style="display:none;text-align:center;padding:32px;color:#5f6368;font-size:12px;">No transactions found for this period.</div>
   </div>
-  <div id="watchLoading" class="loading" style="display:none;"><div class="spin"></div>Loading...</div>
-  <div id="watchErr" style="display:none;"></div>
-  <div id="watchList"></div>
-  <div id="watchEmpty" class="no-data" style="display:none;">
-    <h3>No watch rules yet</h3>
-    <p>Add a rule to track spending by vendor, person, or keyword across your GL transactions.</p>
-    <button class="btn btn-primary" onclick="toggleAddWatch()">+ Add rule</button>
-  </div>
+
 </div>
 
 </div>
@@ -727,6 +773,7 @@ var watchPeriod = null;
 var watchActiveFY = null;
 var watchCustomFrom = '';
 var watchCustomTo = '';
+var activeWatchRule = null;
 
 var COLORS = ['#1a73e8','#0f9d58','#ea4335','#673ab7','#ff9800','#e91e63','#00897b','#5f6368','#1565c0','#2e7d32'];
 
@@ -1583,14 +1630,67 @@ function renderWatchRules(results) {
       h += '</div>';
       h += '<div style="display:flex;align-items:center;gap:16px;flex-shrink:0;">';
       h += '<div style="text-align:right;"><div style="font-size:20px;font-weight:bold;">' + fmt(Math.abs(res.total)) + '</div>';
-      h += '<div style="font-size:11px;color:#5f6368;">' + res.count + ' transaction' + (res.count !== 1 ? 's' : '') + '</div></div>';
-      h += '<button class="btn btn-sm btn-red" onclick="deleteWatchRule(\'' + rule.id + '\')">Remove</button>';
+      h += '<div style="font-size:11px;color:#5f6368;">' + res.count + ' transaction' + (res.count !== 1 ? 's' : '') + '</div>';
+      h += '<div style="font-size:10px;color:#80868b;margin-top:3px;">Click to see transactions</div></div>';
+      h += '<button class="btn btn-sm btn-red" onclick="event.stopPropagation();deleteWatchRule(\'' + rule.id + '\')">Remove</button>';
       h += '</div>';
       card.innerHTML = h;
+      card.onclick = (function(r, rv) { return function() { drillToWatchTxns(r, rv); }; })(rule, res);
       list.appendChild(card);
     })(watchRules[i]);
   }
   show('watchList');
+}
+
+function drillToWatchTxns(rule, res) {
+  activeWatchRule = rule;
+  hide('watchL1'); show('watchL2');
+  var label = rule.label || ('"' + rule.term + '"');
+  var fieldLabel = rule.field === 'name' ? 'Name' : rule.field === 'desc' ? 'Description' : 'Name & Description';
+  setText('watchL2Title', label);
+  setText('watchTxnTotal', fmt(Math.abs(res.total)));
+  setText('watchTxnCount', String(res.count));
+  setText('watchTxnTerm', rule.term + ' (' + fieldLabel + ')');
+  setText('watchTxnScope', rule.suiteKey || 'Any SuiteKey');
+  // hide SuiteKey column header if rule is scoped to one SuiteKey
+  var skHead = document.getElementById('watchTxnSKHead');
+  if (skHead) skHead.style.display = rule.suiteKey ? 'none' : '';
+  hide('watchTxnWrap'); hide('watchTxnNone');
+  show('watchTxnLoading');
+  google.script.run
+    .withSuccessHandler(function(txns) {
+      hide('watchTxnLoading');
+      setText('watchTxnCount', String(txns.length));
+      if (!txns.length) { show('watchTxnNone'); return; }
+      var body = document.getElementById('watchTxnBody');
+      body.innerHTML = '';
+      var showSK = !rule.suiteKey;
+      for (var i = 0; i < txns.length; i++) {
+        var t = txns[i];
+        var af = (t.amount < 0 ? '-' : '') + fmt(Math.abs(t.amount));
+        var ac = t.amount < 0 ? '#c5221f' : '#202124';
+        var ds = t.desc.length > 48 ? t.desc.slice(0, 48) + '...' : t.desc;
+        var ns = t.name.length > 26 ? t.name.slice(0, 26) + '...' : t.name;
+        var tr = document.createElement('tr');
+        tr.title = t.desc;
+        var skCell = showSK ? '<td style="color:#5f6368;font-size:11px;">' + t.suiteKey + '</td>' : '';
+        tr.innerHTML = '<td style="color:#5f6368;white-space:nowrap;">' + (t.txnDate || t.postedDate) + '</td>' +
+          '<td style="color:#5f6368;white-space:nowrap;">' + t.docNum + '</td>' +
+          '<td>' + ds + '</td>' +
+          '<td style="color:#5f6368;">' + ns + '</td>' +
+          skCell +
+          '<td style="text-align:right;font-weight:bold;color:' + ac + ';">' + af + '</td>';
+        body.appendChild(tr);
+      }
+      show('watchTxnWrap');
+    })
+    .withFailureHandler(function(e) { hide('watchTxnLoading'); showErr('watchErr', e.message); })
+    .getWatchTransactions(rule, watchActiveFY, watchPeriod, watchMode, watchCustomFrom, watchCustomTo);
+}
+
+function watchGoBack() {
+  hide('watchL2'); show('watchL1');
+  activeWatchRule = null;
 }
 
 function toggleAddWatch() {

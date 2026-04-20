@@ -987,6 +987,56 @@ function saveWatchRules(rules) {
   return { ok: true };
 }
 
+/** Returns individual GL transactions matching a single watch rule. */
+function getWatchTransactions(rule, fiscalYear, period, periodType, dateFrom, dateTo) {
+  if (!rule || !rule.term) return [];
+  const data = getGLData();
+  if (!data) return [];
+
+  const result = [];
+  const term = rule.term.toLowerCase();
+  let currentSectionCode = null;
+
+  for (let i = 0; i < data.length; i++) {
+    const row  = data[i];
+    const colA = String(row[TXCOL_HDR_ACCOUNT] || '').trim();
+    const colB = String(row[TXCOL_CODE]         || '').trim();
+
+    if (colA && !colA.startsWith('Total') && !colB) {
+      currentSectionCode = normalizeCode(extractCode(colA));
+      continue;
+    }
+    if (colA.startsWith('Total')) continue;
+
+    if (!colA && colB && !isSkipRow(colB)) {
+      const d = parseGLDate(row[TXCOL_POST_DATE]);
+      if (!d || !inPeriod(d, fiscalYear, period, periodType, dateFrom, dateTo)) continue;
+
+      const txSuiteKey = String(row[TXCOL_SUITEKEY] || '').trim();
+      if (rule.suiteKey && rule.suiteKey !== txSuiteKey) continue;
+
+      const txName = String(row[TXCOL_NAME] || '').toLowerCase();
+      const txDesc = String(row[TXCOL_DESC] || '').toLowerCase();
+      const matchName = rule.field !== 'desc' && txName.includes(term);
+      const matchDesc = rule.field !== 'name' && txDesc.includes(term);
+      if (!matchName && !matchDesc) continue;
+
+      const sectionCode = normalizeCode(currentSectionCode || colB);
+      const txnDate = parseGLDate(row[TXCOL_TXN_DATE]);
+      result.push({
+        postedDate : formatDate(d),
+        txnDate    : formatDate(txnDate || d),
+        docNum     : String(row[TXCOL_DOC_NUM]     || ''),
+        desc       : String(row[TXCOL_DESC]        || ''),
+        name       : String(row[TXCOL_NAME]        || ''),
+        suiteKey   : txSuiteKey,
+        amount     : calcAmount(row, sectionCode),
+      });
+    }
+  }
+  return result;
+}
+
 /**
  * Scans the GL for transactions matching each watch rule and returns totals.
  * Each rule: { id, term, field ('name'|'desc'|'both'), suiteKey ('' = any), label }
