@@ -502,7 +502,20 @@ function createBudgetForSuiteKey(suiteKey, fiscalYear) {
   }
 
   const name = 'Budget — ' + suiteKey + ' — FY' + fy;
-  const ss   = SpreadsheetApp.create(name);
+  let ss;
+  try {
+    ss = SpreadsheetApp.create(name);
+  } catch(e) {
+    if (e.message && e.message.toLowerCase().includes('permission')) {
+      throw new Error(
+        'Cannot create the budget sheet — your authorization needs to be refreshed. ' +
+        'Open the app URL in a new browser tab; if prompted, click Allow to re-authorize. ' +
+        'If the problem continues, ask IT to check that the app is allowed to create Google Sheets in your Workspace Admin Console. ' +
+        '(Original error: ' + e.message + ')'
+      );
+    }
+    throw e;
+  }
   const sheet= ss.getActiveSheet();
   sheet.setName('Budget FY' + fy);
 
