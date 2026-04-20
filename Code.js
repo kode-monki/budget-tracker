@@ -42,8 +42,9 @@ let _permData      = undefined;   // cached permissions sheet data
 let _budgetCache   = {};          // { "suiteKey_FY": { rows, readonly, fileId } }
 
 // ScriptProperties keys
-const SPROP_PERMISSIONS_ID = 'PERMISSIONS_SHEET_ID';
-const SPROP_COA_ID         = 'COA_SHEET_ID';
+const SPROP_PERMISSIONS_ID    = 'PERMISSIONS_SHEET_ID';
+const SPROP_COA_ID            = 'COA_SHEET_ID';
+const SPROP_PERMISSIONS_CACHE = 'PERMISSIONS_CACHE';
 
 // UserProperties keys
 const UPROP_GL_SHEET_ID    = 'GL_SHEET_ID';
@@ -114,38 +115,29 @@ function getInitialData() {
     }
     log.push('email:' + (Date.now()-t0) + 'ms');
 
-    // Step 3: permissions sheet
-    const permId = sp.getProperty(SPROP_PERMISSIONS_ID) || '';
+    // Step 3: permissions data (from ScriptProperties cache or direct sheet read)
     let suiteKeys = [], skError = null;
-    if (permId) {
-      try {
-        const pss   = SpreadsheetApp.openById(permId);
-        log.push('perm_open:' + (Date.now()-t0) + 'ms');
-        const pdata = pss.getSheets()[0].getDataRange().getValues();
-        log.push('perm_read:' + (Date.now()-t0) + 'ms');
-        const uEmail = userEmail.toLowerCase();
-        for (let i = 1; i < pdata.length; i++) {
-          const row   = pdata[i];
-          const sk    = String(row[0]||'').trim();
-          const owner = String(row[2]||'').trim().toLowerCase();
-          if (!sk) continue;
-          const viewers = String(row[1]||'').split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
-          if (owner === uEmail || viewers.includes(uEmail)) {
-            suiteKeys.push({ suiteKey: sk, isOwner: owner===uEmail, ownerEmail: owner, viewers });
-          }
+    const permResult = getPermissionsData();
+    log.push('perm:' + (Date.now()-t0) + 'ms fromCache:' + permResult.fromCache);
+    if (permResult.data) {
+      const pdata  = permResult.data;
+      const uEmail = userEmail.toLowerCase();
+      for (let i = 1; i < pdata.length; i++) {
+        const row   = pdata[i];
+        const sk    = String(row[0]||'').trim();
+        const owner = String(row[2]||'').trim().toLowerCase();
+        if (!sk) continue;
+        const viewers = String(row[1]||'').split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
+        if (owner === uEmail || viewers.includes(uEmail)) {
+          suiteKeys.push({ suiteKey: sk, isOwner: owner===uEmail, ownerEmail: owner, viewers });
         }
-        // Populate cache so subsequent calls don't re-open
-        _suiteKeyCache = { error: null, suiteKeys };
-        log.push('perm_done:' + (Date.now()-t0) + 'ms suitekeys:' + suiteKeys.length);
-      } catch(e) {
-        skError = 'cannot_open_permissions';
-        _suiteKeyCache = { error: skError, suiteKeys: [] };
-        log.push('perm_err:' + e.message);
       }
+      _suiteKeyCache = { error: null, suiteKeys };
+      log.push('perm_done:' + (Date.now()-t0) + 'ms suitekeys:' + suiteKeys.length);
     } else {
-      skError = 'no_permissions_sheet';
+      skError = permResult.error || 'cannot_open_permissions';
       _suiteKeyCache = { error: skError, suiteKeys: [] };
-      log.push('no_perm_sheet');
+      log.push('perm_err:' + skError);
     }
 
     // Step 4: GL sheet — open and cache data
@@ -292,22 +284,13 @@ function getCurrentUserEmail() {
 function getUserSuiteKeys() {
   if (_suiteKeyCache !== undefined) return _suiteKeyCache;
 
-  const permId = PropertiesService.getScriptProperties().getProperty(SPROP_PERMISSIONS_ID);
-  if (!permId) {
-    _suiteKeyCache = { error: 'no_permissions_sheet', suiteKeys: [] };
+  const permResult = getPermissionsData();
+  if (!permResult.data) {
+    _suiteKeyCache = { error: permResult.error || 'cannot_open_permissions', suiteKeys: [] };
     return _suiteKeyCache;
   }
 
-  let sheet;
-  try {
-    const ss = SpreadsheetApp.openById(permId);
-    sheet = ss.getSheets()[0];
-  } catch(e) {
-    _suiteKeyCache = { error: 'cannot_open_permissions', suiteKeys: [] };
-    return _suiteKeyCache;
-  }
-
-  const data      = sheet.getDataRange().getValues();
+  const data      = permResult.data;
   const userEmail = getCurrentUserEmail();
   const results   = [];
 
@@ -333,6 +316,46 @@ function getUserSuiteKeys() {
 // ============================================================
 //  SETTINGS  (admin + per-user)
 // ============================================================
+
+/**
+ * Reads the permissions sheet and stores it in ScriptProperties so end users
+ * never need direct access to the sheet. Finance runs this after any change.
+ * The sheet can then be restricted to Finance only.
+ */
+function syncPermissionsCache() {
+  const sp     = PropertiesService.getScriptProperties();
+  const permId = sp.getProperty(SPROP_PERMISSIONS_ID);
+  if (!permId) return { ok: false, error: 'No permissions sheet ID saved in Settings.' };
+  try {
+    const data = SpreadsheetApp.openById(permId).getSheets()[0].getDataRange().getValues();
+    const json = JSON.stringify(data);
+    sp.setProperty(SPROP_PERMISSIONS_CACHE, json);
+    return { ok: true, rows: Math.max(0, data.length - 1) };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+/**
+ * Returns the raw permissions sheet data from ScriptProperties cache.
+ * Falls back to reading the sheet directly if the cache is empty (first-run).
+ */
+function getPermissionsData() {
+  const sp     = PropertiesService.getScriptProperties();
+  const cached = sp.getProperty(SPROP_PERMISSIONS_CACHE);
+  if (cached) {
+    try { return { data: JSON.parse(cached), fromCache: true }; } catch(e) {}
+  }
+  // Cache empty — try direct read (requires sheet to be shared)
+  const permId = sp.getProperty(SPROP_PERMISSIONS_ID);
+  if (!permId) return { data: null, error: 'no_permissions_sheet' };
+  try {
+    const data = SpreadsheetApp.openById(permId).getSheets()[0].getDataRange().getValues();
+    return { data, fromCache: false };
+  } catch(e) {
+    return { data: null, error: 'cannot_open_permissions' };
+  }
+}
 
 /** Returns all settings needed to render the Settings tab. */
 function getAllSettings() {

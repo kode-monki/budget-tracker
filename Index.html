@@ -379,7 +379,15 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
       <label class="form-label">Chart of accounts spreadsheet URL or ID</label>
       <input type="text" id="coaInput" placeholder="https://docs.google.com/spreadsheets/d/...">
     </div>
-    <button class="btn btn-primary btn-sm" onclick="saveAdminSettings()">Save admin settings</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:2px;">
+      <button class="btn btn-primary btn-sm" onclick="saveAdminSettings()">Save admin settings</button>
+      <button class="btn btn-sm" onclick="syncPermCache()" id="syncPermBtn">Sync permissions cache</button>
+      <span id="syncPermStatus" style="font-size:11px;color:#5f6368;"></span>
+    </div>
+    <div style="font-size:11px;color:#80868b;margin-top:8px;line-height:1.6;">
+      <strong>Sync permissions cache</strong> copies the permissions sheet into the app's internal storage so end users never need direct access to the sheet.
+      Run this after any change to the permissions sheet, then you can restrict the sheet to Finance only.
+    </div>
   </div>
   <div class="settings-section">
     <h3>Your GL transactions sheet (per user)</h3>
@@ -848,7 +856,7 @@ function onInitialData(data) {
   hide('dashInit');
   if (data.skError === 'no_permissions_sheet') { show('dashNoPerm'); return; }
   if (data.skError === 'cannot_open_permissions') {
-    showErr('dashErr', 'Cannot open the permissions sheet. Make sure it is shared with everyone who uses this app (Viewer access is enough), then reload.');
+    showErr('dashErr', 'Cannot read the permissions data. Ask Finance to go to Settings and click "Sync permissions cache", then reload.');
     return;
   }
   if (!data.suiteKeys || !data.suiteKeys.length) { show('dashNoSK'); return; }
@@ -1464,6 +1472,28 @@ function loadGLTabs(preselect) {
     })
     .withFailureHandler(function(e) { showErr('settingsErr', e.message); })
     .getSheetTabs(parseId(document.getElementById('glInput').value));
+}
+
+function syncPermCache() {
+  var btn = document.getElementById('syncPermBtn');
+  var status = document.getElementById('syncPermStatus');
+  btn.disabled = true; btn.textContent = 'Syncing...'; status.textContent = '';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false; btn.textContent = 'Sync permissions cache';
+      if (r.ok) {
+        status.style.color = '#137333';
+        status.textContent = '✓ Cached ' + r.rows + ' row' + (r.rows !== 1 ? 's' : '') + '. You can now restrict the sheet to Finance only.';
+      } else {
+        status.style.color = '#c5221f';
+        status.textContent = 'Error: ' + r.error;
+      }
+    })
+    .withFailureHandler(function(e) {
+      btn.disabled = false; btn.textContent = 'Sync permissions cache';
+      status.style.color = '#c5221f'; status.textContent = 'Error: ' + e.message;
+    })
+    .syncPermissionsCache();
 }
 
 function saveAdminSettings() {
