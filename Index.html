@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Budget Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:13px;background:#f8f9fa;color:#202124;}
+.shell{min-height:100vh;}
+.nav{display:flex;align-items:center;background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;position:sticky;top:0;z-index:20;}
+.nav-brand{font-size:16px;font-weight:bold;color:#202124;margin-right:24px;padding:14px 0;}
+.nav-tabs{display:flex;flex:1;}
+.nav-btn{background:transparent;border:none;padding:14px 16px;font-size:13px;color:#5f6368;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;}
+.nav-btn.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:bold;}
+.nav-end{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.pill{font-size:11px;padding:3px 9px;border-radius:12px;}
+.pill-ok{background:#e6f4ea;color:#137333;}
+.pill-info{background:#e8f0fe;color:#1a73e8;}
+.page{display:none;padding:20px 24px;max-width:1200px;margin:0 auto;}
+.page.active{display:block;}
+.btn{background:#fff;border:1px solid #dadce0;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;color:#202124;font-family:inherit;display:inline-flex;align-items:center;gap:5px;}
+.btn:hover{background:#f1f3f4;}
+.btn:disabled{opacity:.45;cursor:default;}
+.btn-primary{background:#1a73e8;border-color:#1a73e8;color:#fff;}
+.btn-primary:hover{background:#1557b0;}
+.btn-green{background:#0f9d58;border-color:#0f9d58;color:#fff;}
+.btn-green:hover{background:#0b8043;}
+.btn-red{color:#c5221f;border-color:#f5c6c6;}
+.btn-sm{padding:4px 10px;font-size:12px;}
+select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid #dadce0;font-family:inherit;color:#202124;background:#fff;}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:16px;}
+.sk-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s;}
+.sk-card:hover{border-color:#1a73e8;}
+.sk-card.no-budget{border-style:dashed;cursor:default;}
+.sk-card.no-budget:hover{border-color:#e0e0e0;}
+.badge{font-size:10px;padding:1px 6px;border-radius:12px;}
+.b-ok{background:#e6f4ea;color:#137333;}
+.b-warn{background:#fce8b2;color:#b06000;}
+.b-over{background:#fce8e6;color:#c5221f;}
+.b-ro{background:#f1f3f4;color:#5f6368;}
+.mini-track{background:#f1f3f4;border-radius:99px;height:5px;overflow:hidden;}
+.mini-fill{height:100%;border-radius:99px;}
+.back-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.breadcrumb{font-size:12px;color:#5f6368;}
+.summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.stat-box{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:14px 16px;}
+.stat-label{font-size:11px;color:#5f6368;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.stat-val{font-size:22px;font-weight:bold;}
+.danger{color:#c5221f!important;}
+.warn{color:#b06000!important;}
+.overall{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:12px;}
+.track{background:#f1f3f4;border-radius:99px;height:8px;overflow:hidden;margin:8px 0 4px;}
+.track-fill{height:100%;border-radius:99px;transition:width .4s;}
+.track-leg{display:flex;justify-content:space-between;font-size:11px;color:#5f6368;}
+.cat-list{display:flex;flex-direction:column;gap:6px;}
+.cat-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.cat-card:hover{border-color:#1a73e8;}
+.txn-panel{background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-top:10px;}
+.txn-table{width:100%;border-collapse:collapse;font-size:12px;}
+.txn-table th{padding:7px 10px;text-align:left;font-size:11px;font-weight:bold;color:#5f6368;border-bottom:1px solid #e0e0e0;background:#fff;}
+.txn-table td{padding:7px 10px;border-bottom:1px solid #f1f3f4;color:#202124;}
+.txn-table tr:hover td{background:#f8f9fa;}
+.btable{width:100%;border-collapse:collapse;font-size:12px;}
+.btable thead th{position:sticky;top:61px;z-index:5;padding:8px 10px;text-align:left;font-size:11px;font-weight:bold;color:#5f6368;background:#fff;border-bottom:1px solid #dadce0;}
+.btable tbody tr{border-bottom:1px solid #f1f3f4;}
+.btable tbody tr:hover td{background:#f8f9fa;}
+.btable td{padding:6px 10px;vertical-align:middle;}
+.grp-tr td{background:#f8f9fa;font-weight:bold;font-size:11px;color:#5f6368;cursor:pointer;}
+.chev{display:inline-block;transition:transform .2s;margin-right:4px;font-size:10px;}
+.chev.open{transform:rotate(90deg);}
+.bud-input{width:100%;background:transparent;border:none;font-size:12px;text-align:right;outline:none;font-family:inherit;color:#202124;}
+.bud-input:focus{background:#e8f0fe;border-radius:3px;}
+.sk-manage-row{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.sk-key{font-size:12px;font-weight:bold;background:#e8f0fe;color:#1a73e8;padding:3px 9px;border-radius:6px;}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.dot-g{background:#0f9d58;}
+.dot-gray{background:#bdc1c6;}
+.settings-section{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:12px;}
+.settings-section h3{font-size:14px;font-weight:bold;margin-bottom:8px;}
+.settings-section p{font-size:12px;color:#5f6368;margin-bottom:12px;line-height:1.5;}
+.form-row{margin-bottom:10px;}
+.form-label{font-size:12px;font-weight:bold;margin-bottom:4px;display:block;}
+.form-hint{font-size:11px;color:#80868b;margin-top:3px;}
+.tab-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
+.chip{padding:4px 10px;border-radius:12px;border:1px solid #dadce0;font-size:12px;cursor:pointer;background:#fff;}
+.chip.active{background:#e8f0fe;border-color:#1a73e8;color:#1a73e8;font-weight:bold;}
+.filter-drawer{background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:10px;}
+.filter-head{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid #e0e0e0;font-weight:bold;}
+.filter-body{padding:10px 12px;max-height:260px;overflow-y:auto;}
+.filter-grp{font-size:10px;font-weight:bold;color:#5f6368;text-transform:uppercase;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #f1f3f4;}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:8px;}
+.filter-chk{display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:4px;cursor:pointer;font-size:12px;}
+.filter-chk:hover{background:#f1f3f4;}
+.filter-foot{padding:8px 12px;border-top:1px solid #e0e0e0;display:flex;gap:6px;justify-content:space-between;align-items:center;}
+.toggle{width:32px;height:18px;border-radius:99px;background:#bdc1c6;border:none;cursor:pointer;position:relative;flex-shrink:0;}
+.toggle.on{background:#1a73e8;}
+.toggle::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s;}
+.toggle.on::after{left:17px;}
+.diag{background:#e8f0fe;border:1px solid #c5d9f7;border-radius:6px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#1a73e8;}
+.loading{text-align:center;padding:32px;color:#5f6368;}
+.spin{width:28px;height:28px;border:3px solid #e0e0e0;border-top-color:#1a73e8;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.skel{background:linear-gradient(90deg,#f1f3f4 25%,#e8eaed 50%,#f1f3f4 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.err{background:#fce8e6;border:1px solid #f5c6c6;border-radius:6px;padding:10px 12px;color:#c5221f;font-size:12px;margin:8px 0;}
+.no-data{text-align:center;padding:40px 24px;color:#5f6368;}
+.no-data h3{font-size:15px;font-weight:bold;color:#202124;margin-bottom:8px;}
+.no-data p{font-size:12px;margin-bottom:16px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto;}
+.ro-banner{background:#fff8e1;border:1px solid #fdd663;border-radius:6px;padding:8px 12px;font-size:12px;color:#594300;margin-bottom:10px;}
+.saved-pill{font-size:11px;color:#137333;background:#e6f4ea;padding:3px 9px;border-radius:12px;}
+.date-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.date-wrap input[type=date]{width:130px;font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #dadce0;}
+.perm-hint{background:#fff8e1;border:1px solid #fdd663;border-radius:6px;padding:10px 12px;font-size:12px;color:#594300;margin-bottom:10px;line-height:1.6;}
+
+.faq-section{margin-bottom:24px;}
+.faq-section-title{font-size:14px;font-weight:bold;color:#00A7E1;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #00A7E1;}
+.faq-item{border:1px solid #e0e0e0;border-radius:8px;margin-bottom:6px;overflow:hidden;}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:#fff;font-size:13px;font-weight:bold;color:#202124;user-select:none;}
+.faq-q:hover{background:#f8f9fa;}
+.faq-arrow{font-size:11px;color:#5f6368;transition:transform .2s;flex-shrink:0;margin-left:12px;}
+.faq-arrow.open{transform:rotate(90deg);}
+.faq-a{display:block;padding:12px 16px 14px 16px;font-size:13px;color:#3c4043;line-height:1.7;border-top:1px solid #f1f3f4;background:#fafafa;}
+.faq-a p{margin-bottom:8px;}
+.faq-a p:last-child{margin-bottom:0;}
+.faq-a ul{margin:4px 0 8px 18px;}
+.faq-a li{margin-bottom:3px;}
+.faq-a code{background:#f1f3f4;padding:1px 6px;border-radius:4px;font-size:12px;font-family:monospace;color:#c0392b;}
+.tip-box{background:#e8f4fd;border-left:3px solid #00A7E1;border-radius:0 6px 6px 0;padding:9px 12px;margin:10px 0;font-size:12px;color:#014c6e;}
+.warn-box{background:#fff8e1;border-left:3px solid #f9ab00;border-radius:0 6px 6px 0;padding:9px 12px;margin:10px 0;font-size:12px;color:#594300;}
+.step-row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;}
+.step-num{background:#00A7E1;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;flex-shrink:0;margin-top:1px;}
+
+.watch-rule{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;}
+.watch-form{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:12px;}
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="nav">
+  <span class="nav-brand">Budget Tracker</span>
+  <div class="nav-tabs">
+    <button class="nav-btn active" onclick="showPage('dash',this)">Dashboard</button>
+    <button class="nav-btn" onclick="showPage('budget',this)">Budget template</button>
+    <button class="nav-btn" onclick="showPage('manage',this)">Manage</button>
+    <button class="nav-btn" onclick="showPage('settings',this)">Settings</button>
+    <button class="nav-btn" onclick="showPage('help',this)">Help</button>
+    <button class="nav-btn" onclick="showPage('watch',this)">Watchlist</button>
+  </div>
+  <div class="nav-end">
+    <span id="userPill" class="pill pill-info" style="display:none;"></span>
+    <span id="glPill" class="pill" style="display:none;"></span>
+  </div>
+</div>
+
+<div id="page-dash" class="page active">
+  <div id="diagBar" class="diag" style="display:none;"></div>
+  <div id="dashErr" style="display:none;"></div>
+  <div id="dashInit">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:16px;">
+      <div class="skel" style="height:130px;"></div>
+      <div class="skel" style="height:130px;"></div>
+      <div class="skel" style="height:130px;"></div>
+      <div class="skel" style="height:130px;"></div>
+    </div>
+    <div class="skel" style="height:80px;"></div>
+  </div>
+  <div id="dashNoPerm" class="no-data" style="display:none;">
+    <h3>Permissions sheet not configured</h3>
+    <p>Finance needs to set up the permissions sheet in Settings.</p>
+  </div>
+  <div id="dashNoSK" class="no-data" style="display:none;">
+    <h3>No SuiteKeys assigned</h3>
+    <p>Your email has not been added to any SuiteKey in the permissions sheet. Contact Finance.</p>
+  </div>
+  <div id="dashL1" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+      <div style="font-size:16px;font-weight:bold;">Overview</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;border:1px solid #dadce0;border-radius:6px;overflow:hidden;" id="modeGroup">
+          <button style="background:#e8f0fe;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#1a73e8;font-weight:bold;" onclick="setMode('fiscal_year',this)">Full year</button>
+          <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setMode('quarter',this)">Quarter</button>
+          <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setMode('month',this)">Month</button>
+          <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setMode('custom',this)">Custom</button>
+        </div>
+        <select id="periodSel" onchange="loadL1()" style="width:auto;"></select>
+        <div id="customWrap" style="display:none;" class="date-wrap">
+          <input type="date" id="dateFrom" onchange="loadL1()">
+          <span style="font-size:12px;color:#5f6368;">to</span>
+          <input type="date" id="dateTo" onchange="loadL1()">
+        </div>
+      </div>
+    </div>
+    <div id="skCards" class="cards-grid"></div>
+  </div>
+  <div id="dashL2" style="display:none;">
+    <div class="back-bar">
+      <button class="btn btn-sm" onclick="goBack(1)">Back</button>
+      <div>
+        <div class="breadcrumb">Overview</div>
+        <div style="font-size:16px;font-weight:bold;" id="l2Title"></div>
+      </div>
+      <span id="l2RoBadge" class="badge b-ro" style="display:none;">View only</span>
+      <div style="margin-left:auto;">
+        <button class="btn btn-sm" onclick="toggleFilter()">Filter accounts</button>
+      </div>
+    </div>
+    <div id="filterWrap" style="display:none;">
+      <div class="filter-drawer">
+        <div class="filter-head">
+          <span>Visible accounts</span>
+          <span id="filterCount" style="font-size:11px;color:#5f6368;font-weight:normal;"></span>
+        </div>
+        <div class="filter-body" id="filterBody"></div>
+        <div class="filter-foot">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#5f6368;">
+            <span>Show all with spending</span>
+            <button class="toggle" id="spendToggle" onclick="toggleSpend()"></button>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" onclick="fSelAll()">All</button>
+            <button class="btn btn-sm" onclick="fSelNone()">None</button>
+            <button class="btn btn-sm" onclick="fSelActivity()">With activity</button>
+            <button class="btn btn-sm btn-primary" onclick="toggleFilter()">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="summary-strip">
+      <div class="stat-box"><div class="stat-label">Budget</div><div class="stat-val" id="l2Budget">-</div></div>
+      <div class="stat-box"><div class="stat-label">Actuals</div><div class="stat-val" id="l2Actuals">-</div></div>
+      <div class="stat-box"><div class="stat-label">Remaining</div><div class="stat-val" id="l2Remain">-</div></div>
+      <div class="stat-box"><div class="stat-label">Over budget</div><div class="stat-val" id="l2Over">0</div></div>
+    </div>
+    <div class="overall">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span style="font-size:13px;font-weight:bold;">Overall utilization</span>
+        <span style="font-size:18px;font-weight:bold;" id="l2Pct">-</span>
+      </div>
+      <div class="track"><div class="track-fill" id="l2Bar" style="width:0%;background:#1a73e8;"></div></div>
+      <div class="track-leg"><span id="l2LgL">-</span><span id="l2LgR">-</span></div>
+    </div>
+    <div id="l2Loading" class="loading" style="display:none;"><div class="spin"></div>Loading...</div>
+    <div class="cat-list" id="catList"></div>
+  </div>
+  <div id="dashL3" style="display:none;">
+    <div class="back-bar">
+      <button class="btn btn-sm" onclick="goBack(2)">Back</button>
+      <div>
+        <div class="breadcrumb" id="l3Crumb">-</div>
+        <div style="font-size:16px;font-weight:bold;" id="l3Title"></div>
+      </div>
+    </div>
+    <div class="summary-strip">
+      <div class="stat-box"><div class="stat-label">Budget</div><div class="stat-val" id="l3Budget">-</div></div>
+      <div class="stat-box"><div class="stat-label">Actuals</div><div class="stat-val" id="l3Actuals">-</div></div>
+      <div class="stat-box"><div class="stat-label">Remaining</div><div class="stat-val" id="l3Remain">-</div></div>
+      <div class="stat-box"><div class="stat-label">Transactions</div><div class="stat-val" id="l3Count">-</div></div>
+    </div>
+    <div id="l3Loading" class="loading"><div class="spin"></div>Loading transactions...</div>
+    <div id="l3Wrap" style="display:none;">
+      <div class="txn-panel">
+        <div style="padding:10px 14px;border-bottom:1px solid #e0e0e0;background:#f8f9fa;">
+          <span style="font-size:12px;font-weight:bold;" id="l3TxnCount">- transactions</span>
+        </div>
+        <div style="max-height:520px;overflow-y:auto;">
+          <table class="txn-table">
+            <thead><tr>
+              <th style="width:90px;">Date</th>
+              <th style="width:80px;">Doc #</th>
+              <th>Description</th>
+              <th style="width:150px;">Name</th>
+              <th style="text-align:right;width:90px;">Amount</th>
+            </tr></thead>
+            <tbody id="txnBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div id="l3NoTxn" style="display:none;text-align:center;padding:32px;color:#5f6368;font-size:12px;">No transactions found for this period.</div>
+  </div>
+</div>
+
+<div id="page-budget" class="page">
+  <div id="budgInit" class="loading"><div class="spin"></div>Loading...</div>
+  <div id="budgErr" style="display:none;"></div>
+  <div id="budgNoSK" class="no-data" style="display:none;">
+    <h3>No SuiteKeys available</h3>
+    <p>You need at least one SuiteKey assigned in the permissions sheet.</p>
+  </div>
+  <div id="budgMain" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+          <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">SuiteKey</label>
+          <select id="budgSKSel" onchange="onBudgSKChange()" style="width:auto;"></select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">Fiscal year</label>
+          <select id="budgFYSel" onchange="loadBudgetRows()" style="width:auto;"></select>
+        </div>
+        <a id="budgLink" href="#" target="_blank" style="font-size:12px;color:#1a73e8;display:none;margin-top:16px;">Open in Sheets</a>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="budgSearch" placeholder="Search..." oninput="renderBudgTable()" style="width:140px;font-size:12px;padding:5px 8px;">
+        <button class="btn btn-sm" onclick="expandAll()">Expand all</button>
+        <button class="btn btn-sm" onclick="collapseAll()">Collapse all</button>
+        <span id="savedBadge" style="display:none;" class="saved-pill">Saved</span>
+        <span id="savingBadge" style="display:none;font-size:11px;color:#5f6368;">Saving...</span>
+      </div>
+    </div>
+    <div id="roBanner" class="ro-banner" style="display:none;">View only - only the owner can edit this budget.</div>
+    <div id="budgNoBudget" style="display:none;text-align:center;padding:32px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:bold;margin-bottom:6px;">No budget yet for <span id="budgNoName">this SuiteKey</span></div>
+      <div style="font-size:12px;color:#5f6368;margin-bottom:16px;"></div>
+      <button class="btn btn-green" onclick="createBudget()">Create budget</button>
+    </div>
+    <div id="budgTableWrap" style="display:none;">
+      <div style="border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:10px;">
+        <div style="overflow-y:auto;max-height:600px;">
+          <table class="btable">
+            <thead><tr>
+              <th style="width:7%;">Code</th>
+              <th style="width:25%;">Account name</th>
+              <th style="width:13%;">Group</th>
+              <th style="width:29%;">Description</th>
+              <th style="text-align:right;width:16%;">Budget</th>
+              <th style="text-align:right;width:10%;">% of total</th>
+            </tr></thead>
+            <tbody id="budgBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:12px;color:#5f6368;">Total: <strong id="budgTotal">$0</strong></span>
+        <button class="btn btn-primary" id="budgSaveBtn" onclick="saveBudgets()">Save to Sheets</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-manage" class="page">
+  <div id="manInit" class="loading"><div class="spin"></div>Loading...</div>
+  <div id="manErr" style="display:none;"></div>
+  <div id="manMain" style="display:none;">
+    <div style="margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:bold;margin-bottom:3px;">Manage budgets</div>
+      <div style="font-size:12px;color:#5f6368;">Budget sheets are stored privately in your Google Drive.</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;font-weight:bold;">Fiscal year</label>
+      <select id="manFYSel" onchange="loadManage()" style="width:auto;"></select>
+    </div>
+    <div id="manList"></div>
+  </div>
+</div>
+
+<div id="page-settings" class="page">
+  <div style="font-size:15px;font-weight:bold;margin-bottom:14px;">Settings</div>
+  <div class="settings-section">
+    <h3>Admin settings (Finance only - shared across all users)</h3>
+    <p>Set once by Finance. Applies to everyone.</p>
+    <div class="perm-hint">
+      Permissions sheet: Col A = SuiteKey, Col B = Viewer emails (comma-separated), Col C = Owner email
+    </div>
+    <div class="form-row">
+      <label class="form-label">Permissions spreadsheet URL or ID</label>
+      <input type="text" id="permInput" placeholder="https://docs.google.com/spreadsheets/d/...">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Chart of accounts spreadsheet URL or ID</label>
+      <input type="text" id="coaInput" placeholder="https://docs.google.com/spreadsheets/d/...">
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveAdminSettings()">Save admin settings</button>
+  </div>
+  <div class="settings-section">
+    <h3>Your GL transactions sheet (per user)</h3>
+    <p>Paste your NetSuite GL Multicurrency export into a Google Sheet, then link it here.</p>
+    <div class="form-row">
+      <label class="form-label">GL spreadsheet URL or ID</label>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="glInput" placeholder="https://docs.google.com/spreadsheets/d/..." style="flex:1;">
+        <button class="btn btn-sm" onclick="loadGLTabs()">Load tabs</button>
+      </div>
+    </div>
+    <div id="glTabRow" style="display:none;">
+      <label class="form-label">Tab with GL export</label>
+      <div class="tab-chips" id="glTabChips"></div>
+    </div>
+    <div id="settingsErr" style="display:none;margin-top:8px;"></div>
+    <div id="settingsOk" style="display:none;font-size:12px;color:#137333;background:#e6f4ea;padding:8px 10px;border-radius:6px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save GL settings</button>
+      <button class="btn btn-sm btn-red" onclick="clearSettings()">Clear</button>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#80868b;margin-top:8px;">Signed in as: <span id="emailDisplay">-</span></div>
+
+
+
+</div>
+
+<div id="page-help" class="page">
+  <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">Help &amp; FAQ</div>
+  <div style="font-size:12px;color:#5f6368;margin-bottom:20px;">Answers to common questions about setting up and using Budget Tracker.</div>
+
+  <div class="faq-section">
+    <div class="faq-section-title">Getting started</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What is Budget Tracker and how does it work?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Budget Tracker compares approved budgets against actual GL spending, organized by SuiteKey (cost center or project code).</p>
+        <p>It pulls from two sources:</p>
+        <ul>
+          <li><strong>Budget sheet</strong> - a Google Sheet created through the app, pre-filled with your chart of accounts. You enter the approved dollar amounts.</li>
+          <li><strong>GL transactions sheet</strong> - a Google Sheet where you paste your NetSuite GL Multicurrency export.</li>
+        </ul>
+        <p>The dashboard shows each SuiteKey you are authorized for, with actuals vs. budget, utilization bars, and drill-down to individual transactions.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What do I need to set up before I can use the app?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Finance completes these steps first:</p>
+        <div class="step-row"><div class="step-num">1</div><div>Create a <strong>Permissions sheet</strong> with columns: SuiteKey (A), Viewer emails comma-separated (B), Owner email (C). Paste the URL in Settings.</div></div>
+        <div class="step-row"><div class="step-num">2</div><div>Paste the <strong>NetSuite chart of accounts export</strong> into a Google Sheet and link it in Settings under Chart of accounts.</div></div>
+        <p>Then each user does:</p>
+        <div class="step-row"><div class="step-num">3</div><div>Paste their <strong>NetSuite GL Multicurrency export</strong> into a Google Sheet and link it in Settings.</div></div>
+        <div class="step-row"><div class="step-num">4</div><div>Go to Manage, select their FY, and click <strong>Create budget</strong> for each SuiteKey they own.</div></div>
+        <div class="tip-box">Finance sets up the permissions and COA sheets once. Each user links their own GL export independently.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What format does the GL export need to be in?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Export the <strong>General Ledger Multicurrency</strong> report from NetSuite. Expected columns:</p>
+        <ul>
+          <li>Col A - Account section header (e.g. <code>5010 - Product Sales</code>)</li>
+          <li>Col B - Account code on detail rows (e.g. <code>5010</code>)</li>
+          <li>Col D - Posted date in DD-MM-YY format</li>
+          <li>Col F - Document number</li>
+          <li>Col G - Description</li>
+          <li>Col H - Name / donor / vendor</li>
+          <li>Col K - ICJE SuiteKey</li>
+          <li>Col L - Debit, Col M - Credit, Col O - Local amount</li>
+        </ul>
+        <div class="warn-box">The SuiteKey column (K) must be populated for transactions to appear. Rows without a SuiteKey are ignored.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What format does the chart of accounts need to be in?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Export your COA from NetSuite and paste into a Google Sheet. The app reads:</p>
+        <ul>
+          <li>Col A - NetSuite Category (e.g. <code>Expense</code>, <code>Personnel</code>)</li>
+          <li>Col B - Account code (e.g. <code>7405</code>)</li>
+          <li>Col C - Account name (e.g. <code>Travel</code>)</li>
+          <li>Col D - Description (shown as tooltip in the budget template)</li>
+        </ul>
+        <p>Balance sheet accounts (codes below 4000), SUMMARY rows, and header rows are skipped automatically.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <div class="faq-section-title">Dashboard</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What do the colored badges mean?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <ul>
+          <li><strong style="color:#137333;">Green (e.g. 42%)</strong> - on track, under 80% of budget used</li>
+          <li><strong style="color:#b06000;">Yellow (e.g. 85%)</strong> - approaching budget, 80% or above</li>
+          <li><strong style="color:#c5221f;">Red (Over)</strong> - spending has exceeded the approved budget</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I filter which accounts show on the dashboard?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>After clicking into a SuiteKey, click <strong>Filter accounts</strong> in the top right. Checkboxes let you show or hide individual accounts.</p>
+        <p>By default only accounts with a budget or actual spending are shown. Use the footer buttons:</p>
+        <ul>
+          <li><strong>All</strong> - show every account in the COA</li>
+          <li><strong>None</strong> - hide everything</li>
+          <li><strong>With activity</strong> - reset to the default</li>
+          <li><strong>Show all with spending</strong> toggle - auto-includes accounts that have transactions even if unchecked</li>
+        </ul>
+        <div class="tip-box">Dots in the filter show status: blue = budget and spending, green = spending only, gray = budget only.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I filter by date range?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Use the period selector at the top of the dashboard:</p>
+        <ul>
+          <li><strong>Full year</strong> - entire fiscal year (October to September by default)</li>
+          <li><strong>Quarter</strong> - Q1 through Q4</li>
+          <li><strong>Month</strong> - any month in your GL data</li>
+          <li><strong>Custom</strong> - any from/to date range</li>
+        </ul>
+        <p>The fiscal year start month is set in <code>Code.gs</code> under <code>FISCAL_YEAR_START_MONTH</code> (currently October).</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Why does an account show spending but no budget?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>The account has GL transactions but no budget amount was entered. Common reasons:</p>
+        <ul>
+          <li>The budget was left at $0 for that account</li>
+          <li>The account was not in the COA when the budget sheet was created</li>
+          <li>The account code in the GL does not match the code in the budget sheet</li>
+        </ul>
+        <p>Fix: open Budget template and enter an amount, or archive and recreate the budget after updating the COA.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <div class="faq-section-title">Budgets</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Who can create and edit a budget?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Only the <strong>owner</strong> of a SuiteKey (Column C in the permissions sheet) can create and edit its budget. Viewers (Column B) can see the data but cannot edit.</p>
+        <div class="tip-box">Contact Finance to be added as an owner or viewer for a SuiteKey.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Where is my budget sheet stored?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>In your personal Google Drive, named <strong>Budget - [SuiteKey] - FY[year]</strong>. Open it directly from the Budget template tab via the "Open in Sheets" link or from the Manage tab.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I create a budget for a new fiscal year?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <div class="step-row"><div class="step-num">1</div><div>Go to the <strong>Manage</strong> tab</div></div>
+        <div class="step-row"><div class="step-num">2</div><div>Select the new fiscal year from the dropdown</div></div>
+        <div class="step-row"><div class="step-num">3</div><div>Click <strong>Create budget</strong> next to each SuiteKey you own</div></div>
+        <p>All amounts start at $0. Enter your approved amounts in the Budget template tab.</p>
+        <div class="tip-box">You can have budgets for multiple fiscal years at the same time.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I remove an old or incorrect budget?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Go to <strong>Manage</strong>, select the fiscal year, and click <strong>Archive and remove</strong>. The Google Sheet is renamed to <strong>[Archived] Budget - ...</strong> and removed from the app. The file stays in your Drive.</p>
+        <div class="warn-box">To restore an archived budget, rename the file in Drive (remove "[Archived]") then create a new budget for that SuiteKey/FY in Manage - you will need to re-enter the amounts.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <div class="faq-section-title">Permissions and access</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How does the permissions sheet work?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Finance maintains one Google Sheet. Each row is one SuiteKey:</p>
+        <ul>
+          <li><strong>Col A</strong> - SuiteKey (e.g. <code>WaxhawIT-U_SIL</code>)</li>
+          <li><strong>Col B</strong> - Comma-separated viewer emails (everyone who can see this SuiteKey)</li>
+          <li><strong>Col C</strong> - Single owner email (the one person who can edit the budget)</li>
+        </ul>
+        <p>A person can appear on multiple rows and will see all those SuiteKeys. A manager's supervisor gets access by Finance adding their email to Column B.</p>
+        <div class="tip-box">Changes take effect immediately on the next page load. No redeployment needed.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">I don't see any SuiteKeys on my dashboard. What's wrong?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Likely causes:</p>
+        <ul>
+          <li>Your email has not been added to the permissions sheet - contact Finance</li>
+          <li>The permissions sheet URL is not configured in Settings - contact your Finance admin</li>
+          <li>You are signed into a different Google account than the one Finance has on file</li>
+        </ul>
+        <p>Check Settings to confirm which email you are signed in as (shown at the bottom).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <div class="faq-section-title">Troubleshooting</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">The dashboard loads but shows $0 for everything. Why?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Check:</p>
+        <ul>
+          <li>Settings - confirm your GL sheet URL is saved and the correct tab is selected</li>
+          <li>The ICJE SuiteKey column (K) in your GL export matches the SuiteKey exactly, including capitalization</li>
+          <li>The selected date range covers a period that has transactions in your GL</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">The app is slow to load. What can I do?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Load time is mainly affected by:</p>
+        <ul>
+          <li><strong>GL sheet size</strong> - keep your GL export to a single fiscal year per tab</li>
+          <li><strong>Number of SuiteKeys</strong> - each authorized SuiteKey opens a budget file. More SuiteKeys = longer load.</li>
+          <li><strong>Cold start</strong> - the first load after inactivity is slower. Subsequent loads are faster.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I update the app after a new version is released?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <div class="step-row"><div class="step-num">1</div><div>Paste updated <code>Code.gs</code> and <code>Index.html</code> into the Apps Script editor and save</div></div>
+        <div class="step-row"><div class="step-num">2</div><div>Deploy > Manage deployments > existing deployment > New version > Deploy</div></div>
+        <p>The URL never changes. All users get the new version automatically on next load.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Who do I contact for help?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <ul>
+          <li><strong>Access issues</strong> (missing SuiteKeys, can't see a budget) - contact <strong>Finance</strong></li>
+          <li><strong>Technical issues</strong> (app errors, slow loading) - contact your <strong>IT administrator</strong></li>
+          <li><strong>Budget questions</strong> (wrong amounts, missing accounts) - contact the <strong>budget owner</strong> shown on each SuiteKey card</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-watch" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+    <div style="font-size:15px;font-weight:bold;">Watchlist</div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <div style="display:flex;border:1px solid #dadce0;border-radius:6px;overflow:hidden;" id="watchModeGrp">
+        <button style="background:#e8f0fe;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#1a73e8;font-weight:bold;" onclick="setWatchMode('fiscal_year',this)">Full year</button>
+        <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('quarter',this)">Quarter</button>
+        <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('month',this)">Month</button>
+        <button style="background:#fff;border:none;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:#5f6368;" onclick="setWatchMode('custom',this)">Custom</button>
+      </div>
+      <select id="watchPeriodSel" onchange="loadWatchData()" style="width:auto;"></select>
+      <div id="watchCustomWrap" style="display:none;" class="date-wrap">
+        <input type="date" id="watchDateFrom" onchange="loadWatchData()">
+        <span style="font-size:12px;color:#5f6368;">to</span>
+        <input type="date" id="watchDateTo" onchange="loadWatchData()">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="toggleAddWatch()">+ Add rule</button>
+    </div>
+  </div>
+  <div id="watchForm" class="watch-form" style="display:none;">
+    <div style="font-size:13px;font-weight:bold;margin-bottom:10px;">New watch rule</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div>
+        <label class="form-label">Search term</label>
+        <input type="text" id="watchTerm" placeholder="e.g. Amazon, John Smith" style="width:180px;">
+      </div>
+      <div>
+        <label class="form-label">Match in</label>
+        <select id="watchField" style="width:auto;">
+          <option value="both">Name &amp; Description</option>
+          <option value="name">Name only</option>
+          <option value="desc">Description only</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">SuiteKey</label>
+        <select id="watchSKSel" style="width:auto;"><option value="">Any</option></select>
+      </div>
+      <div>
+        <label class="form-label">Label (optional)</label>
+        <input type="text" id="watchLabel" placeholder="Friendly name" style="width:160px;">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addWatchRule()">Add</button>
+      <button class="btn btn-sm" onclick="toggleAddWatch()">Cancel</button>
+    </div>
+    <div id="watchFormErr" style="display:none;margin-top:8px;"></div>
+  </div>
+  <div id="watchLoading" class="loading" style="display:none;"><div class="spin"></div>Loading...</div>
+  <div id="watchErr" style="display:none;"></div>
+  <div id="watchList"></div>
+  <div id="watchEmpty" class="no-data" style="display:none;">
+    <h3>No watch rules yet</h3>
+    <p>Add a rule to track spending by vendor, person, or keyword across your GL transactions.</p>
+    <button class="btn btn-primary" onclick="toggleAddWatch()">+ Add rule</button>
+  </div>
+</div>
+
+</div>
+<script>
+var currentFY = null;
+var currentMode = 'fiscal_year';
+var currentPeriod = null;
+var customFrom = '';
+var customTo = '';
+var periodData = {};
+var suiteKeys = [];
+var allL2Rows = [];
+var visibleCodes = {};
+var spendOverride = false;
+var budgetRows = [];
+var budgetReadonly = false;
+var pendingEdits = {};
+var collapsedGrps = {};
+var selectedGLTab = '';
+var activeSK = null;
+var activeBudgSK = null;
+var activeBudgFY = null;
+
+var watchRules = [];
+var watchMode = 'fiscal_year';
+var watchPeriod = null;
+var watchActiveFY = null;
+var watchCustomFrom = '';
+var watchCustomTo = '';
+
+var COLORS = ['#1a73e8','#0f9d58','#ea4335','#673ab7','#ff9800','#e91e63','#00897b','#5f6368','#1565c0','#2e7d32'];
+
+function diag(msg) {
+  var el = document.getElementById('diagBar');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideDiag() {
+  document.getElementById('diagBar').style.display = 'none';
+}
+
+diag('Connecting...');
+google.script.run
+  .withSuccessHandler(function(r) {
+    diag('Connected (' + r.ms + 'ms). Loading settings...');
+    google.script.run
+      .withSuccessHandler(function(r2) {
+        diag('Settings loaded (' + r2.ms + 'ms). ' +
+             (r2.hasPermSheet ? 'Permissions: OK' : 'Permissions: NOT SET') + ' | ' +
+             (r2.hasGLSheet ? 'GL: OK' : 'GL: NOT SET') +
+             '. Opening spreadsheets...');
+        google.script.run
+          .withSuccessHandler(function(data) {
+            hideDiag();
+            onInitialData(data);
+          })
+          .withFailureHandler(function(e) {
+            hideDiag();
+            hide('dashInit');
+            showErr('dashErr', 'Error loading data: ' + e.message);
+          })
+          .getInitialData();
+      })
+      .withFailureHandler(function(e) {
+        hideDiag();
+        hide('dashInit');
+        showErr('dashErr', 'Fast init failed: ' + e.message);
+      })
+      .getInitialDataFast();
+  })
+  .withFailureHandler(function(e) {
+    hideDiag();
+    hide('dashInit');
+    showErr('dashErr', 'Cannot connect to Apps Script: ' + e.message);
+  })
+  .ping();
+
+function onInitialData(data) {
+  periodData = data.periods || {};
+  currentFY = data.currentFY;
+  buildPeriodSel();
+  currentPeriod = String(currentFY);
+
+  var s = data.settings || {};
+  if (s.userEmail) {
+    setText('userPill', s.userEmail);
+    show('userPill');
+    setText('emailDisplay', s.userEmail);
+  }
+  if (s.permissionsSheetId) document.getElementById('permInput').value = s.permissionsSheetId;
+  if (s.coaSheetId) document.getElementById('coaInput').value = s.coaSheetId;
+  if (s.glSheetId) {
+    document.getElementById('glInput').value = s.glSheetId;
+    loadGLTabs(s.glTabName);
+    var pill = document.getElementById('glPill');
+    pill.className = 'pill pill-ok';
+    pill.textContent = 'GL linked';
+    show('glPill');
+  }
+
+  hide('dashInit');
+  if (data.skError === 'no_permissions_sheet') { show('dashNoPerm'); return; }
+  if (data.skError === 'cannot_open_permissions') {
+    showErr('dashErr', 'Cannot open the permissions sheet. Make sure it is shared with everyone who uses this app (Viewer access is enough), then reload.');
+    return;
+  }
+  if (!data.suiteKeys || !data.suiteKeys.length) { show('dashNoSK'); return; }
+  suiteKeys = data.suiteKeys;
+  show('dashL1');
+  loadL1();
+}
+
+function buildPeriodSel() {
+  var sel = document.getElementById('periodSel');
+  var cw = document.getElementById('customWrap');
+  sel.innerHTML = '';
+  if (currentMode === 'custom') {
+    sel.style.display = 'none';
+    cw.style.display = '';
+    if (!customFrom || !customTo) {
+      var now = new Date();
+      var fyStart = new Date(now.getMonth() + 1 >= 10 ? now.getFullYear() : now.getFullYear() - 1, 9, 1);
+      var fyEnd = new Date(fyStart.getFullYear() + 1, 8, 30);
+      customFrom = fyStart.toISOString().slice(0, 10);
+      customTo = fyEnd.toISOString().slice(0, 10);
+      document.getElementById('dateFrom').value = customFrom;
+      document.getElementById('dateTo').value = customTo;
+    }
+    return;
+  }
+  sel.style.display = '';
+  cw.style.display = 'none';
+  var fys, months, i, q;
+  if (currentMode === 'fiscal_year') {
+    fys = (periodData.fiscalYears || []).slice();
+    if (fys.indexOf(currentFY) < 0) fys.unshift(currentFY);
+    fys.sort(function(a,b){return b-a;});
+    for (i = 0; i < fys.length; i++) sel.appendChild(new Option('FY ' + fys[i], fys[i]));
+  } else if (currentMode === 'quarter') {
+    for (q = 1; q <= 4; q++) sel.appendChild(new Option('Q' + q + ' FY' + currentFY, q));
+  } else {
+    months = periodData.months || [];
+    for (i = 0; i < months.length; i++) sel.appendChild(new Option(months[i].label, months[i].value));
+  }
+  if (sel.options.length) { sel.value = sel.options[0].value; currentPeriod = sel.value; }
+}
+
+function setMode(mode, btn) {
+  currentMode = mode;
+  var btns = document.getElementById('modeGroup').getElementsByTagName('button');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].style.background = btns[i] === btn ? '#e8f0fe' : '#fff';
+    btns[i].style.color = btns[i] === btn ? '#1a73e8' : '#5f6368';
+    btns[i].style.fontWeight = btns[i] === btn ? 'bold' : 'normal';
+  }
+  buildPeriodSel();
+  loadL1();
+}
+
+function loadL1() {
+  if (currentMode === 'custom') {
+    customFrom = document.getElementById('dateFrom').value;
+    customTo = document.getElementById('dateTo').value;
+    if (!customFrom || !customTo) return;
+  } else {
+    currentPeriod = document.getElementById('periodSel').value;
+  }
+  document.getElementById('skCards').innerHTML = '<div class="loading"><div class="spin"></div>Loading...</div>';
+  google.script.run
+    .withSuccessHandler(renderL1)
+    .withFailureHandler(function(e) { showErr('dashErr', e.message); })
+    .getDashboardSummary(currentFY, currentPeriod, currentMode, customFrom, customTo);
+}
+
+function renderL1(summaries) {
+  var cards = document.getElementById('skCards');
+  cards.innerHTML = '';
+  if (!summaries || !summaries.length) {
+    cards.innerHTML = '<div style="color:#5f6368;font-size:12px;">No SuiteKey data for this period.</div>';
+    return;
+  }
+  for (var i = 0; i < summaries.length; i++) {
+    (function(s, idx) {
+      var isOver = s.totalActuals > s.totalBudget;
+      var isWarn = s.pct >= 80 && !isOver;
+      var color = COLORS[idx % COLORS.length];
+      var fill = isOver ? '#c5221f' : isWarn ? '#f9ab00' : color;
+      var card = document.createElement('div');
+      card.className = 'sk-card' + (s.hasBudget ? '' : ' no-budget');
+      var inner = '<div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:bold;margin-bottom:2px;">';
+      inner += '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block;"></span>';
+      inner += s.suiteKey;
+      if (s.hasBudget) {
+        if (isOver) inner += ' <span class="badge b-over">Over</span>';
+        else if (isWarn) inner += ' <span class="badge b-warn">' + s.pct + '%</span>';
+        else inner += ' <span class="badge b-ok">' + s.pct + '%</span>';
+      } else {
+        inner += ' <span class="badge b-ro">No budget</span>';
+      }
+      if (s.readonly) inner += ' <span class="badge b-ro">View only</span>';
+      inner += '</div>';
+      inner += '<div style="font-size:11px;color:#5f6368;margin-bottom:10px;">' + (s.isOwner ? 'You own this budget' : 'Owner: ' + s.ownerEmail) + '</div>';
+      if (s.hasBudget) {
+        inner += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">';
+        inner += '<span style="font-size:16px;font-weight:bold;color:' + (isOver ? '#c5221f' : '#202124') + ';">' + fmt(s.totalActuals) + '</span>';
+        inner += '<span style="font-size:11px;color:#5f6368;">of ' + fmt(s.totalBudget) + '</span>';
+        inner += '</div>';
+        inner += '<div class="mini-track"><div class="mini-fill" style="width:' + Math.min(s.pct, 100) + '%;background:' + fill + ';"></div></div>';
+        inner += '<div style="font-size:10px;color:#80868b;margin-top:5px;">' + fmt(Math.abs(s.totalBudget - s.totalActuals)) + (s.totalActuals > s.totalBudget ? ' over' : ' remaining') + ' - click to drill in</div>';
+      } else {
+        inner += '<div style="font-size:12px;color:#80868b;margin-top:8px;">' + (s.isOwner ? 'No budget created yet.' : 'Owner has not created a budget.') + '</div>';
+        if (s.isOwner) {
+          inner += '<div style="margin-top:8px;"><button class="btn btn-sm btn-green" onclick="event.stopPropagation();quickCreate(\'' + s.suiteKey + '\')">Create budget</button></div>';
+        }
+      }
+      card.innerHTML = inner;
+      if (s.hasBudget) {
+        card.onclick = (function(summary) { return function() { drillToL2(summary); }; })(s);
+      }
+      cards.appendChild(card);
+    })(summaries[i], i);
+  }
+}
+
+function quickCreate(sk) {
+  google.script.run
+    .withSuccessHandler(function() { loadL1(); })
+    .withFailureHandler(function(e) { alert('Error: ' + e.message); })
+    .createBudgetForSuiteKey(sk, currentFY);
+}
+
+function drillToL2(summary) {
+  hide('dashL1'); show('dashL2');
+  activeSK = summary.suiteKey;
+  allL2Rows = [];
+  visibleCodes = {};
+  spendOverride = false;
+  hide('filterWrap');
+  setText('l2Title', summary.suiteKey);
+  document.getElementById('l2RoBadge').style.display = summary.readonly ? '' : 'none';
+  setText('l2Budget', fmt(summary.totalBudget));
+  setText('l2Actuals', fmt(summary.totalActuals));
+  setText('l2Remain', fmt(Math.abs(summary.remaining)));
+  setText('l2Pct', summary.pct + '%');
+  setText('l2LgL', fmt(summary.totalActuals) + ' actuals');
+  setText('l2LgR', 'of ' + fmt(summary.totalBudget) + ' budget');
+  var bar = document.getElementById('l2Bar');
+  bar.style.width = Math.min(summary.pct, 100) + '%';
+  bar.style.background = summary.pct > 100 ? '#c5221f' : summary.pct > 85 ? '#f9ab00' : '#1a73e8';
+  show('l2Loading');
+  document.getElementById('catList').innerHTML = '';
+  google.script.run
+    .withSuccessHandler(function(detail) {
+      hide('l2Loading');
+      allL2Rows = detail.categories || [];
+      visibleCodes = {};
+      for (var i = 0; i < allL2Rows.length; i++) {
+        var r = allL2Rows[i];
+        if (Math.abs(r.budget) > 0 || Math.abs(r.actuals) > 0) {
+          visibleCodes[r.code] = true;
+        }
+      }
+      buildFilterDrawer(allL2Rows);
+      renderL2(getFilteredRows());
+    })
+    .withFailureHandler(function(e) { hide('l2Loading'); showErr('dashErr', e.message); })
+    .getSuiteKeyDetail(summary.suiteKey, currentFY, currentPeriod, currentMode, customFrom, customTo);
+}
+
+function getFilteredRows() {
+  var rows = [];
+  for (var i = 0; i < allL2Rows.length; i++) {
+    var r = allL2Rows[i];
+    if (visibleCodes[r.code]) rows.push(r);
+    else if (spendOverride && Math.abs(r.actuals) > 0) rows.push(r);
+  }
+  return rows;
+}
+
+function renderL2(rows) {
+  var overCount = 0;
+  for (var i = 0; i < rows.length; i++) { if (rows[i].actuals > rows[i].budget) overCount++; }
+  setText('l2Over', String(overCount));
+  document.getElementById('l2Over').className = 'stat-val' + (overCount > 0 ? ' danger' : '');
+  var list = document.getElementById('catList');
+  list.innerHTML = '';
+  if (!rows.length) {
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:#5f6368;">No accounts match the filter. Click Filter accounts to adjust.</div>';
+    return;
+  }
+  for (var i = 0; i < rows.length; i++) {
+    (function(r, idx) {
+      var isOver = r.actuals > r.budget;
+      var isWarn = r.pct >= 80 && !isOver;
+      var color = COLORS[idx % COLORS.length];
+      var fill = isOver ? '#c5221f' : isWarn ? '#f9ab00' : color;
+      var badge = isOver ? '<span class="badge b-over">Over</span>' :
+                  isWarn ? '<span class="badge b-warn">' + r.pct + '%</span>' :
+                           '<span class="badge b-ok">' + r.pct + '%</span>';
+      var card = document.createElement('div');
+      card.className = 'cat-card';
+      var inner = '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+      inner += '<div style="display:flex;align-items:center;gap:7px;">';
+      inner += '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block;flex-shrink:0;"></span>';
+      inner += '<div><div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:bold;">' + r.fullName + '</span>' + badge + '</div>';
+      inner += '<div style="font-size:10px;color:#80868b;">' + r.group + ' - ' + (isOver ? fmt(r.actuals - r.budget) + ' over' : fmt(r.budget - r.actuals) + ' remaining') + '</div></div></div>';
+      inner += '<div style="text-align:right;flex-shrink:0;"><div style="font-size:12px;font-weight:bold;">' + fmt(r.actuals) + '</div><div style="font-size:11px;color:#5f6368;">of ' + fmt(r.budget) + '</div></div>';
+      inner += '</div>';
+      inner += '<div class="mini-track" style="margin-top:7px;"><div class="mini-fill" style="width:' + Math.min(r.pct, 100) + '%;background:' + fill + ';"></div></div>';
+      inner += '<div style="font-size:10px;color:#80868b;margin-top:4px;">Click to see transactions</div>';
+      card.innerHTML = inner;
+      card.onclick = (function(row, ci) { return function() { drillToL3(row, ci); }; })(r, idx);
+      list.appendChild(card);
+    })(rows[i], i);
+  }
+}
+
+function drillToL3(row, ci) {
+  hide('dashL2'); show('dashL3');
+  setText('l3Crumb', activeSK + ' - ' + row.group);
+  setText('l3Title', row.fullName);
+  setText('l3Budget', fmt(Math.abs(row.budget)));
+  var aEl = document.getElementById('l3Actuals');
+  aEl.textContent = fmt(row.actuals);
+  aEl.className = 'stat-val' + (row.actuals > row.budget ? ' danger' : '');
+  setText('l3Remain', fmt(Math.abs(row.budget - row.actuals)));
+  hide('l3Wrap'); hide('l3NoTxn');
+  show('l3Loading');
+  google.script.run
+    .withSuccessHandler(function(txns) {
+      hide('l3Loading');
+      setText('l3Count', String(txns.length));
+      setText('l3TxnCount', txns.length + ' transaction' + (txns.length !== 1 ? 's' : ''));
+      if (!txns.length) { show('l3NoTxn'); return; }
+      var body = document.getElementById('txnBody');
+      body.innerHTML = '';
+      for (var i = 0; i < txns.length; i++) {
+        var t = txns[i];
+        var af = (t.amount < 0 ? '-' : '') + fmt(Math.abs(t.amount));
+        var ac = t.amount < 0 ? '#c5221f' : '#202124';
+        var ds = t.desc.length > 52 ? t.desc.slice(0, 52) + '...' : t.desc;
+        var ns = t.name.length > 28 ? t.name.slice(0, 28) + '...' : t.name;
+        var tr = document.createElement('tr');
+        tr.title = t.desc;
+        tr.innerHTML = '<td style="color:#5f6368;white-space:nowrap;">' + (t.txnDate || t.postedDate) + '</td>' +
+          '<td style="color:#5f6368;white-space:nowrap;">' + t.docNum + '</td>' +
+          '<td>' + ds + '</td>' +
+          '<td style="color:#5f6368;">' + ns + '</td>' +
+          '<td style="text-align:right;font-weight:bold;color:' + ac + ';">' + af + '</td>';
+        body.appendChild(tr);
+      }
+      show('l3Wrap');
+    })
+    .withFailureHandler(function(e) { hide('l3Loading'); showErr('dashErr', e.message); })
+    .getTransactions(activeSK, row.code, currentFY, currentPeriod, currentMode, customFrom, customTo);
+}
+
+function goBack(toLevel) {
+  hide('dashL2'); hide('dashL3'); hide('filterWrap');
+  if (toLevel === 1) { activeSK = null; allL2Rows = []; visibleCodes = {}; spendOverride = false; show('dashL1'); }
+  if (toLevel === 2) { show('dashL2'); }
+}
+
+function toggleFilter() {
+  var w = document.getElementById('filterWrap');
+  w.style.display = w.style.display === 'none' ? 'block' : 'none';
+}
+
+function buildFilterDrawer(rows) {
+  var body = document.getElementById('filterBody');
+  if (!body) return;
+  body.innerHTML = '';
+  document.getElementById('spendToggle').className = 'toggle' + (spendOverride ? ' on' : '');
+  var grps = {};
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var key = (r.section || 'Other') + ' - ' + (r.group || 'Other');
+    if (!grps[key]) grps[key] = [];
+    grps[key].push(r);
+  }
+  var keys = Object.keys(grps).sort();
+  for (var k = 0; k < keys.length; k++) {
+    var gkey = keys[k];
+    var grows = grps[gkey];
+    var lbl = document.createElement('div');
+    lbl.className = 'filter-grp';
+    lbl.textContent = gkey + ' (' + grows.length + ')';
+    body.appendChild(lbl);
+    var grid = document.createElement('div');
+    grid.className = 'filter-grid';
+    for (var j = 0; j < grows.length; j++) {
+      (function(r) {
+        var hasTxn = Math.abs(r.actuals) > 0;
+        var hasBudg = Math.abs(r.budget) > 0;
+        var item = document.createElement('label');
+        item.className = 'filter-chk';
+        item.title = r.name;
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!visibleCodes[r.code];
+        cb.onchange = function() {
+          if (cb.checked) visibleCodes[r.code] = true;
+          else delete visibleCodes[r.code];
+          applyFilter();
+        };
+        var dot = document.createElement('span');
+        dot.style.cssText = 'width:6px;height:6px;border-radius:50%;display:inline-block;margin-left:2px;background:' +
+          (hasTxn && hasBudg ? '#1a73e8' : hasTxn ? '#0f9d58' : hasBudg ? '#bdc1c6' : '#f1f3f4') + ';';
+        item.appendChild(cb);
+        item.appendChild(document.createTextNode(' ' + r.code + ' - ' + r.name));
+        item.appendChild(dot);
+        grid.appendChild(item);
+      })(grows[j]);
+    }
+    body.appendChild(grid);
+  }
+  updateFilterCount();
+}
+
+function applyFilter() { renderL2(getFilteredRows()); updateFilterCount(); }
+
+function updateFilterCount() {
+  var el = document.getElementById('filterCount');
+  if (!el) return;
+  var shown = Object.keys(visibleCodes).length;
+  var total = allL2Rows.length;
+  el.textContent = shown + ' of ' + total + ' shown';
+}
+
+function toggleSpend() {
+  spendOverride = !spendOverride;
+  document.getElementById('spendToggle').className = 'toggle' + (spendOverride ? ' on' : '');
+  applyFilter();
+}
+function fSelAll()      { for (var i=0;i<allL2Rows.length;i++) visibleCodes[allL2Rows[i].code]=true; buildFilterDrawer(allL2Rows); applyFilter(); }
+function fSelNone()     { visibleCodes={}; buildFilterDrawer(allL2Rows); applyFilter(); }
+function fSelActivity() {
+  visibleCodes = {};
+  for (var i=0;i<allL2Rows.length;i++) {
+    var r=allL2Rows[i];
+    if (Math.abs(r.budget)>0 || Math.abs(r.actuals)>0) visibleCodes[r.code]=true;
+  }
+  buildFilterDrawer(allL2Rows); applyFilter();
+}
+
+function loadBudgetTab() {
+  hide('budgMain'); hide('budgNoSK'); show('budgInit');
+  if (!suiteKeys.length) { hide('budgInit'); show('budgNoSK'); return; }
+  var skSel = document.getElementById('budgSKSel');
+  skSel.innerHTML = '';
+  for (var i=0;i<suiteKeys.length;i++) skSel.appendChild(new Option(suiteKeys[i].suiteKey, suiteKeys[i].suiteKey));
+  activeBudgSK = skSel.value;
+  var fySel = document.getElementById('budgFYSel');
+  fySel.innerHTML = '';
+  var fys = (periodData.fiscalYears || []).slice();
+  if (fys.indexOf(currentFY) < 0) fys.unshift(currentFY);
+  fys.sort(function(a,b){return b-a;});
+  for (var i=0;i<fys.length;i++) fySel.appendChild(new Option('FY ' + fys[i], fys[i]));
+  activeBudgFY = parseInt(fySel.value);
+  hide('budgInit'); show('budgMain');
+  loadBudgetRows();
+}
+
+function onBudgSKChange() { activeBudgSK = document.getElementById('budgSKSel').value; pendingEdits = {}; loadBudgetRows(); }
+
+function loadBudgetRows() {
+  activeBudgFY = parseInt(document.getElementById('budgFYSel').value);
+  pendingEdits = {};
+  hide('budgTableWrap'); hide('budgNoBudget');
+  google.script.run
+    .withSuccessHandler(function(result) {
+      budgetRows = result.rows;
+      budgetReadonly = result.readonly;
+      var sk = null;
+      for (var i=0;i<suiteKeys.length;i++) { if (suiteKeys[i].suiteKey===activeBudgSK) { sk=suiteKeys[i]; break; } }
+      if (result.missing) {
+        setText('budgNoName', activeBudgSK + ' FY' + activeBudgFY);
+        var msgEl = document.querySelector('#budgNoBudget div:nth-child(2)');
+        var btnEl = document.querySelector('#budgNoBudget button');
+        if (sk && sk.isOwner) {
+          if (msgEl) msgEl.textContent = 'You are the owner - create a budget sheet to get started.';
+          if (btnEl) btnEl.style.display = '';
+        } else {
+          if (msgEl) msgEl.textContent = 'Owner (' + (sk ? sk.ownerEmail : '-') + ') has not created a budget yet.';
+          if (btnEl) btnEl.style.display = 'none';
+        }
+        show('budgNoBudget'); return;
+      }
+      document.getElementById('roBanner').style.display = budgetReadonly ? '' : 'none';
+      document.getElementById('budgSaveBtn').disabled = budgetReadonly;
+      if (result.fileId) {
+        var link = document.getElementById('budgLink');
+        link.href = 'https://docs.google.com/spreadsheets/d/' + result.fileId + '/edit';
+        show('budgLink');
+      }
+      show('budgTableWrap');
+      renderBudgTable();
+    })
+    .withFailureHandler(function(e) { showErr('budgErr', e.message); })
+    .readBudgetSheet(activeBudgSK, activeBudgFY);
+}
+
+function createBudget() {
+  var btn = document.querySelector('#budgNoBudget button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating...'; }
+  google.script.run
+    .withSuccessHandler(function() { loadBudgetRows(); })
+    .withFailureHandler(function(e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create budget'; }
+      showErr('budgErr', e.message);
+    })
+    .createBudgetForSuiteKey(activeBudgSK, activeBudgFY);
+}
+
+function renderBudgTable() {
+  var q = (document.getElementById('budgSearch').value || '').toLowerCase();
+  var body = document.getElementById('budgBody');
+  body.innerHTML = '';
+  var grand = 0;
+  for (var i=0;i<budgetRows.length;i++) {
+    var code = budgetRows[i].code;
+    grand += Math.abs(pendingEdits[code] !== undefined ? pendingEdits[code] : budgetRows[i].budget);
+  }
+  var grps = {};
+  for (var i=0;i<budgetRows.length;i++) {
+    var r = budgetRows[i];
+    var key = (r.section||'Other') + ' - ' + (r.group||'Other');
+    if (!grps[key]) grps[key] = [];
+    grps[key].push(r);
+  }
+  var keys = Object.keys(grps);
+  for (var k=0;k<keys.length;k++) {
+    var gkey = keys[k];
+    var grows = grps[gkey];
+    var filtered = [];
+    for (var j=0;j<grows.length;j++) {
+      var r = grows[j];
+      if (!q || r.name.toLowerCase().indexOf(q)>=0 || r.code.indexOf(q)>=0 || r.group.toLowerCase().indexOf(q)>=0) filtered.push(r);
+    }
+    if (!filtered.length) continue;
+    var gTotal = 0;
+    for (var j=0;j<filtered.length;j++) {
+      var code = filtered[j].code;
+      gTotal += Math.abs(pendingEdits[code]!==undefined ? pendingEdits[code] : filtered[j].budget);
+    }
+    var collapsed = !!collapsedGrps[gkey];
+    var hdr = document.createElement('tr');
+    hdr.className = 'grp-tr';
+    hdr.innerHTML = '<td colspan="4"><span class="chev' + (collapsed ? '' : ' open') + '">&#9654;</span>' + gkey +
+      ' <span style="font-weight:normal;color:#80868b;font-size:10px;">(' + filtered.length + ')</span></td>' +
+      '<td style="text-align:right;">' + fmt(gTotal) + '</td>' +
+      '<td style="text-align:right;">' + (grand ? Math.round(gTotal/grand*100) : 0) + '%</td>';
+    (function(gk) {
+      hdr.onclick = function() { if(collapsedGrps[gk]) delete collapsedGrps[gk]; else collapsedGrps[gk]=true; renderBudgTable(); };
+    })(gkey);
+    body.appendChild(hdr);
+    if (!collapsed) {
+      for (var j=0;j<filtered.length;j++) {
+        (function(r) {
+          var bv = pendingEdits[r.code]!==undefined ? pendingEdits[r.code] : Math.abs(r.budget);
+          var tr = document.createElement('tr');
+          var descShort = r.desc && r.desc.length > 40 ? r.desc.slice(0,40)+'...' : (r.desc||'');
+          tr.innerHTML = '<td style="color:#80868b;font-size:11px;">' + r.code + '</td>' +
+            '<td>' + r.name + '</td>' +
+            '<td style="color:#80868b;font-size:11px;">' + r.group + '</td>' +
+            '<td style="font-size:11px;color:#5f6368;" title="' + (r.desc||'') + '">' + descShort + '</td>' +
+            '<td style="text-align:right;"><input class="bud-input" type="text" value="' + Math.round(bv).toLocaleString() + '" data-code="' + r.code + '"' + (budgetReadonly?' readonly':'') + '></td>' +
+            '<td style="text-align:right;color:#5f6368;font-size:11px;">' + (grand ? Math.round(Math.abs(bv)/grand*100) : 0) + '%</td>';
+          var inp = tr.querySelector('input');
+          if (inp && !budgetReadonly) {
+            inp.onchange = function() { onBudgEdit(this); };
+            inp.onfocus = function() { this.select(); };
+          }
+          body.appendChild(tr);
+        })(filtered[j]);
+      }
+    }
+  }
+  var foot = document.createElement('tr');
+  foot.style.background = '#f8f9fa';
+  foot.style.borderTop = '1px solid #dadce0';
+  foot.innerHTML = '<td colspan="4" style="font-weight:bold;padding:8px 10px;font-size:12px;">Grand total</td>' +
+    '<td style="text-align:right;font-weight:bold;padding:8px 10px;">' + fmt(grand) + '</td>' +
+    '<td style="text-align:right;font-weight:bold;padding:8px 10px;">100%</td>';
+  body.appendChild(foot);
+  setText('budgTotal', fmt(grand));
+}
+
+function onBudgEdit(input) {
+  var v = parseFloat(input.value.replace(/[^0-9.]/g,'')) || 0;
+  pendingEdits[input.getAttribute('data-code')] = v;
+  input.value = Math.round(v).toLocaleString();
+  renderBudgTable();
+}
+
+function saveBudgets() {
+  if (budgetReadonly) return;
+  var keys = Object.keys(pendingEdits);
+  if (!keys.length) return;
+  show('savingBadge'); hide('savedBadge');
+  var updates = [];
+  for (var i=0;i<keys.length;i++) updates.push({code: keys[i], amount: pendingEdits[keys[i]]});
+  google.script.run
+    .withSuccessHandler(function() {
+      pendingEdits = {};
+      hide('savingBadge'); show('savedBadge');
+      setTimeout(function(){hide('savedBadge');}, 3000);
+      loadL1();
+    })
+    .withFailureHandler(function(e) { hide('savingBadge'); showErr('budgErr', e.message); })
+    .saveBudgetAmounts(activeBudgSK, activeBudgFY, updates);
+}
+
+function expandAll() { collapsedGrps = {}; renderBudgTable(); }
+function collapseAll() {
+  var grps = {};
+  for (var i=0;i<budgetRows.length;i++) {
+    var key = (budgetRows[i].section||'Other') + ' - ' + (budgetRows[i].group||'Other');
+    grps[key] = true;
+  }
+  collapsedGrps = grps;
+  renderBudgTable();
+}
+
+function loadManageTab() {
+  hide('manMain'); show('manInit');
+  var fySel = document.getElementById('manFYSel');
+  fySel.innerHTML = '';
+  var fys = (periodData.fiscalYears || []).slice();
+  if (fys.indexOf(currentFY) < 0) fys.unshift(currentFY);
+  fys.sort(function(a,b){return b-a;});
+  for (var i=0;i<fys.length;i++) fySel.appendChild(new Option('FY ' + fys[i], fys[i]));
+  hide('manInit'); show('manMain');
+  loadManage();
+}
+
+function loadManage() {
+  var fy = parseInt(document.getElementById('manFYSel').value);
+  var list = document.getElementById('manList');
+  list.innerHTML = '<div class="loading"><div class="spin"></div>Loading...</div>';
+  google.script.run
+    .withSuccessHandler(function(result) { renderManage(result, fy); })
+    .withFailureHandler(function(e) { list.innerHTML=''; showErr('manErr', e.message); })
+    .getBudgetStatus(fy);
+}
+
+function renderManage(result, fy) {
+  var list = document.getElementById('manList');
+  list.innerHTML = '';
+  if (!result.budgets || !result.budgets.length) {
+    list.innerHTML = '<div style="font-size:12px;color:#5f6368;">No SuiteKeys found. Check the permissions sheet in Settings.</div>';
+    return;
+  }
+  for (var i=0;i<result.budgets.length;i++) {
+    (function(b) {
+      var row = document.createElement('div');
+      row.className = 'sk-manage-row';
+      var info = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+      info += '<span class="dot ' + (b.exists ? 'dot-g' : 'dot-gray') + '"></span>';
+      info += '<span class="sk-key">' + b.suiteKey + '</span>';
+      info += '<span style="font-size:12px;color:#5f6368;">' + (b.exists ? b.name : 'No budget') + '</span>';
+      if (b.isOwner) info += '<span style="font-size:10px;background:#e6f4ea;color:#137333;padding:2px 7px;border-radius:12px;">You own this</span>';
+      else info += '<span style="font-size:10px;color:#80868b;">Owner: ' + b.ownerEmail + '</span>';
+      info += '</div>';
+      var btns = '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
+      if (b.exists) btns += '<a href="' + b.url + '" target="_blank" class="btn btn-sm" style="text-decoration:none;">Open in Sheets</a>';
+      if (b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-red" onclick="removeAddon(\'' + b.suiteKey + '\',' + fy + ',this)">Archive and remove</button>';
+      if (!b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-green" onclick="createFromManage(\'' + b.suiteKey + '\',' + fy + ',this)">Create budget</button>';
+      btns += '</div>';
+      row.innerHTML = info + btns;
+      list.appendChild(row);
+    })(result.budgets[i]);
+  }
+}
+
+function removeAddon(sk, fy, btn) {
+  if (!confirm('Archive this budget sheet and remove from the add-on?')) return;
+  btn.disabled = true; btn.textContent = 'Removing...';
+  google.script.run
+    .withSuccessHandler(function() { loadManage(); })
+    .withFailureHandler(function(e) { btn.disabled=false; btn.textContent='Archive and remove'; showErr('manErr',e.message); })
+    .removeBudgetFromAddon(sk, fy);
+}
+
+function createFromManage(sk, fy, btn) {
+  btn.disabled = true; btn.textContent = 'Creating...';
+  google.script.run
+    .withSuccessHandler(function() { loadManage(); })
+    .withFailureHandler(function(e) { btn.disabled=false; btn.textContent='Create budget'; showErr('manErr',e.message); })
+    .createBudgetForSuiteKey(sk, fy);
+}
+
+function loadGLTabs(preselect) {
+  var raw = document.getElementById('glInput').value.trim();
+  if (!raw) return;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.ok) { showErr('settingsErr', r.error || 'Could not load tabs.'); return; }
+      var chips = document.getElementById('glTabChips');
+      chips.innerHTML = '';
+      selectedGLTab = preselect || (r.tabs.length ? r.tabs[0] : '');
+      for (var i=0;i<r.tabs.length;i++) {
+        (function(t) {
+          var c = document.createElement('span');
+          c.className = 'chip' + (t === selectedGLTab ? ' active' : '');
+          c.textContent = t;
+          c.onclick = function() {
+            selectedGLTab = t;
+            var all = document.getElementById('glTabChips').getElementsByClassName('chip');
+            for (var j=0;j<all.length;j++) all[j].classList.remove('active');
+            c.classList.add('active');
+          };
+          chips.appendChild(c);
+        })(r.tabs[i]);
+      }
+      show('glTabRow');
+    })
+    .withFailureHandler(function(e) { showErr('settingsErr', e.message); })
+    .getSheetTabs(parseId(document.getElementById('glInput').value));
+}
+
+function saveAdminSettings() {
+  var permId = parseId(document.getElementById('permInput').value);
+  var coaId  = parseId(document.getElementById('coaInput').value);
+  hide('settingsErr'); hide('settingsOk');
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.ok) { document.getElementById('settingsOk').textContent = 'Admin settings saved.'; show('settingsOk'); }
+      else showErr('settingsErr', r.error);
+    })
+    .withFailureHandler(function(e) { showErr('settingsErr', e.message); })
+    .saveAdminSettings(permId, coaId);
+}
+
+function saveSettings() {
+  var glId = parseId(document.getElementById('glInput').value);
+  hide('settingsErr'); hide('settingsOk');
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.ok) {
+        document.getElementById('settingsOk').textContent = 'GL settings saved.';
+        show('settingsOk');
+        var pill = document.getElementById('glPill');
+        pill.className = 'pill pill-ok';
+        pill.textContent = 'GL linked';
+        show('glPill');
+      } else showErr('settingsErr', r.error);
+    })
+    .withFailureHandler(function(e) { showErr('settingsErr', e.message); })
+    .saveUserSettings(glId, selectedGLTab);
+}
+
+function clearSettings() {
+  document.getElementById('glInput').value = '';
+  selectedGLTab = '';
+  hide('glTabRow');
+  google.script.run.saveUserSettings('', '');
+  hide('glPill');
+}
+
+function parseId(input) {
+  var m = String(input || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : String(input || '').trim();
+}
+
+function showPage(id, btn) {
+  var pages = document.getElementsByClassName('page');
+  for (var i=0;i<pages.length;i++) pages[i].classList.remove('active');
+  var btns = document.getElementsByClassName('nav-btn');
+  for (var i=0;i<btns.length;i++) btns[i].classList.remove('active');
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'budget') loadBudgetTab();
+  if (id === 'manage') loadManageTab();
+  if (id === 'watch') loadWatchTab();
+}
+
+function loadWatchTab() {
+  watchActiveFY = currentFY;
+  buildWatchPeriodSel();
+  var skSel = document.getElementById('watchSKSel');
+  skSel.innerHTML = '<option value="">Any</option>';
+  for (var i = 0; i < suiteKeys.length; i++) {
+    skSel.appendChild(new Option(suiteKeys[i].suiteKey, suiteKeys[i].suiteKey));
+  }
+  google.script.run
+    .withSuccessHandler(function(rules) {
+      watchRules = rules || [];
+      if (!watchRules.length) { hide('watchLoading'); show('watchEmpty'); return; }
+      loadWatchData();
+    })
+    .withFailureHandler(function(e) { showErr('watchErr', e.message); })
+    .getWatchRules();
+}
+
+function buildWatchPeriodSel() {
+  var sel = document.getElementById('watchPeriodSel');
+  var cw = document.getElementById('watchCustomWrap');
+  sel.innerHTML = '';
+  if (watchMode === 'custom') {
+    sel.style.display = 'none'; cw.style.display = '';
+    if (!watchCustomFrom || !watchCustomTo) {
+      var now = new Date();
+      var fyStart = new Date(now.getMonth() + 1 >= 10 ? now.getFullYear() : now.getFullYear() - 1, 9, 1);
+      var fyEnd = new Date(fyStart.getFullYear() + 1, 8, 30);
+      watchCustomFrom = fyStart.toISOString().slice(0, 10);
+      watchCustomTo = fyEnd.toISOString().slice(0, 10);
+      document.getElementById('watchDateFrom').value = watchCustomFrom;
+      document.getElementById('watchDateTo').value = watchCustomTo;
+    }
+    return;
+  }
+  sel.style.display = ''; cw.style.display = 'none';
+  var fys, months, i, q;
+  if (watchMode === 'fiscal_year') {
+    fys = (periodData.fiscalYears || []).slice();
+    if (fys.indexOf(currentFY) < 0) fys.unshift(currentFY);
+    fys.sort(function(a,b){return b-a;});
+    for (i = 0; i < fys.length; i++) sel.appendChild(new Option('FY ' + fys[i], fys[i]));
+  } else if (watchMode === 'quarter') {
+    for (q = 1; q <= 4; q++) sel.appendChild(new Option('Q' + q + ' FY' + watchActiveFY, q));
+  } else {
+    months = periodData.months || [];
+    for (i = 0; i < months.length; i++) sel.appendChild(new Option(months[i].label, months[i].value));
+  }
+  if (sel.options.length) {
+    sel.value = sel.options[0].value; watchPeriod = sel.value;
+    if (watchMode === 'fiscal_year') watchActiveFY = parseInt(watchPeriod);
+  }
+}
+
+function setWatchMode(mode, btn) {
+  watchMode = mode;
+  var btns = document.getElementById('watchModeGrp').getElementsByTagName('button');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].style.background = btns[i] === btn ? '#e8f0fe' : '#fff';
+    btns[i].style.color = btns[i] === btn ? '#1a73e8' : '#5f6368';
+    btns[i].style.fontWeight = btns[i] === btn ? 'bold' : 'normal';
+  }
+  buildWatchPeriodSel();
+  loadWatchData();
+}
+
+function loadWatchData() {
+  if (!watchRules.length) return;
+  if (watchMode === 'custom') {
+    watchCustomFrom = document.getElementById('watchDateFrom').value;
+    watchCustomTo = document.getElementById('watchDateTo').value;
+    if (!watchCustomFrom || !watchCustomTo) return;
+  } else {
+    watchPeriod = document.getElementById('watchPeriodSel').value;
+    if (watchMode === 'fiscal_year') watchActiveFY = parseInt(watchPeriod);
+  }
+  show('watchLoading'); hide('watchList'); hide('watchErr');
+  google.script.run
+    .withSuccessHandler(function(results) {
+      hide('watchLoading');
+      renderWatchRules(results);
+    })
+    .withFailureHandler(function(e) { hide('watchLoading'); showErr('watchErr', e.message); })
+    .getWatchListData(watchRules, watchActiveFY, watchPeriod, watchMode, watchCustomFrom, watchCustomTo);
+}
+
+function renderWatchRules(results) {
+  var list = document.getElementById('watchList');
+  list.innerHTML = '';
+  if (!watchRules.length) { show('watchEmpty'); return; }
+  hide('watchEmpty');
+  var byId = {};
+  if (results) for (var i = 0; i < results.length; i++) byId[results[i].id] = results[i];
+  for (var i = 0; i < watchRules.length; i++) {
+    (function(rule) {
+      var res = byId[rule.id] || { total: 0, count: 0 };
+      var card = document.createElement('div');
+      card.className = 'watch-rule';
+      var label = rule.label || ('"' + rule.term + '"');
+      var fieldLabel = rule.field === 'name' ? 'Name' : rule.field === 'desc' ? 'Description' : 'Name & Description';
+      var skLabel = rule.suiteKey || 'Any SuiteKey';
+      var h = '<div>';
+      h += '<div style="font-size:13px;font-weight:bold;margin-bottom:3px;">' + label + '</div>';
+      h += '<div style="font-size:11px;color:#5f6368;">Search: <code style="background:#f1f3f4;padding:1px 5px;border-radius:3px;">' + rule.term + '</code> in ' + fieldLabel + '</div>';
+      h += '<div style="font-size:11px;color:#5f6368;margin-top:2px;">Scope: ' + skLabel + '</div>';
+      h += '</div>';
+      h += '<div style="display:flex;align-items:center;gap:16px;flex-shrink:0;">';
+      h += '<div style="text-align:right;"><div style="font-size:20px;font-weight:bold;">' + fmt(Math.abs(res.total)) + '</div>';
+      h += '<div style="font-size:11px;color:#5f6368;">' + res.count + ' transaction' + (res.count !== 1 ? 's' : '') + '</div></div>';
+      h += '<button class="btn btn-sm btn-red" onclick="deleteWatchRule(\'' + rule.id + '\')">Remove</button>';
+      h += '</div>';
+      card.innerHTML = h;
+      list.appendChild(card);
+    })(watchRules[i]);
+  }
+  show('watchList');
+}
+
+function toggleAddWatch() {
+  var f = document.getElementById('watchForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addWatchRule() {
+  var term = document.getElementById('watchTerm').value.trim();
+  hide('watchFormErr');
+  if (!term) { showErr('watchFormErr', 'Search term is required.'); return; }
+  var rule = {
+    id: String(Date.now()),
+    term: term,
+    field: document.getElementById('watchField').value,
+    suiteKey: document.getElementById('watchSKSel').value,
+    label: document.getElementById('watchLabel').value.trim()
+  };
+  watchRules.push(rule);
+  google.script.run
+    .withSuccessHandler(function() {
+      document.getElementById('watchTerm').value = '';
+      document.getElementById('watchLabel').value = '';
+      hide('watchForm');
+      hide('watchEmpty');
+      loadWatchData();
+    })
+    .withFailureHandler(function(e) { watchRules.pop(); showErr('watchFormErr', e.message); })
+    .saveWatchRules(watchRules);
+}
+
+function deleteWatchRule(id) {
+  watchRules = watchRules.filter(function(r) { return r.id !== id; });
+  google.script.run
+    .withSuccessHandler(function() {
+      if (!watchRules.length) { document.getElementById('watchList').innerHTML = ''; show('watchEmpty'); }
+      else loadWatchData();
+    })
+    .withFailureHandler(function(e) { showErr('watchErr', e.message); })
+    .saveWatchRules(watchRules);
+}
+
+
+function toggleFaq(qEl) {
+  var arrow = qEl.querySelector('.faq-arrow');
+  var answer = qEl.nextElementSibling;
+  var isOpen = answer.style.display !== 'none';
+  answer.style.display = isOpen ? 'none' : 'block';
+  arrow.className = 'faq-arrow' + (isOpen ? '' : ' open');
+}
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function setText(id, t) { var e = document.getElementById(id); if (e) e.textContent = t; }
+function show(id) { var e = document.getElementById(id); if (e) e.style.display = 'block'; }
+function hide(id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; }
+function showErr(id, msg) {
+  var e = document.getElementById(id);
+  if (!e) return;
+  e.style.display = 'block';
+  e.innerHTML = '<div class="err"><strong>Error:</strong> ' + msg + '</div>';
+}
+</script>
+
+
+
+
+</body>
+</html>
