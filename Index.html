@@ -150,8 +150,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
   <div class="nav-tabs">
     <button class="nav-btn active" onclick="showPage('dash',this)">Dashboard</button>
     <button class="nav-btn" onclick="showPage('watch',this)">Watchlist</button>
-    <button class="nav-btn" onclick="showPage('budget',this)">Budget template</button>
-    <button class="nav-btn" onclick="showPage('manage',this)">Manage</button>
+    <button class="nav-btn" onclick="showPage('budget',this)">Budget</button>
     <button class="nav-btn" onclick="showPage('settings',this)">Settings</button>
     <button class="nav-btn" onclick="showPage('help',this)">Help</button>
   </div>
@@ -294,24 +293,30 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
 <div id="page-budget" class="page">
   <div id="budgInit" class="loading"><div class="spin"></div>Loading...</div>
   <div id="budgErr" style="display:none;"></div>
-  <div id="budgNoSK" class="no-data" style="display:none;">
-    <h3>No SuiteKeys available</h3>
-    <p>You need at least one SuiteKey assigned in the permissions sheet.</p>
-  </div>
-  <div id="budgMain" style="display:none;">
+
+  <div id="budgL1" style="display:none;">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <div>
-          <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">SuiteKey</label>
-          <select id="budgSKSel" onchange="onBudgSKChange()" style="width:auto;"></select>
-        </div>
-        <div>
-          <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:3px;">Fiscal year</label>
-          <select id="budgFYSel" onchange="loadBudgetRows()" style="width:auto;"></select>
-        </div>
-        <a id="budgLink" href="#" target="_blank" style="font-size:12px;color:#1a73e8;display:none;margin-top:16px;">Open in Sheets</a>
+      <div>
+        <div style="font-size:15px;font-weight:bold;margin-bottom:3px;">Budgets</div>
+        <div style="font-size:12px;color:#5f6368;">Budget sheets are stored privately in your Google Drive.</div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label style="font-size:12px;font-weight:bold;">Fiscal year</label>
+        <select id="budgFYSel" onchange="loadBudgetList()" style="width:auto;"></select>
+      </div>
+    </div>
+    <div id="budgList"></div>
+  </div>
+
+  <div id="budgL2" style="display:none;">
+    <div class="back-bar">
+      <div class="crumb-trail">
+        <span class="crumb-link" onclick="budgGoBack()">Budget</span>
+        <span class="crumb-sep">›</span>
+        <span class="crumb-cur" id="budgL2Title"></span>
+      </div>
+      <a id="budgLink" href="#" target="_blank" style="font-size:12px;color:#1a73e8;display:none;">Open in Sheets</a>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <input type="text" id="budgSearch" placeholder="Search..." oninput="renderBudgTable()" style="width:140px;font-size:12px;padding:5px 8px;">
         <button class="btn btn-sm" onclick="expandAll()">Expand all</button>
         <button class="btn btn-sm" onclick="collapseAll()">Collapse all</button>
@@ -346,22 +351,6 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
         <button class="btn btn-primary" id="budgSaveBtn" onclick="saveBudgets()">Save to Sheets</button>
       </div>
     </div>
-  </div>
-</div>
-
-<div id="page-manage" class="page">
-  <div id="manInit" class="loading"><div class="spin"></div>Loading...</div>
-  <div id="manErr" style="display:none;"></div>
-  <div id="manMain" style="display:none;">
-    <div style="margin-bottom:14px;">
-      <div style="font-size:15px;font-weight:bold;margin-bottom:3px;">Manage budgets</div>
-      <div style="font-size:12px;color:#5f6368;">Budget sheets are stored privately in your Google Drive.</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <label style="font-size:12px;font-weight:bold;">Fiscal year</label>
-      <select id="manFYSel" onchange="loadManage()" style="width:auto;"></select>
-    </div>
-    <div id="manList"></div>
   </div>
 </div>
 
@@ -446,7 +435,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
         <div class="step-row"><div class="step-num">2</div><div>Paste the <strong>NetSuite chart of accounts export</strong> into a Google Sheet and link it in Settings under Chart of accounts.</div></div>
         <p>Then each user does:</p>
         <div class="step-row"><div class="step-num">3</div><div>Paste their <strong>NetSuite GL Multicurrency export</strong> into a Google Sheet and link it in Settings.</div></div>
-        <div class="step-row"><div class="step-num">4</div><div>Go to Manage, select their FY, and click <strong>Create budget</strong> for each SuiteKey they own.</div></div>
+        <div class="step-row"><div class="step-num">4</div><div>Go to <strong>Budget</strong>, select their FY, and click <strong>Create budget</strong> for each SuiteKey they own.</div></div>
         <div class="tip-box">Finance sets up the permissions and COA sheets once. Each user links their own GL export independently.</div>
       </div>
     </div>
@@ -536,7 +525,46 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
           <li>The account was not in the COA when the budget sheet was created</li>
           <li>The account code in the GL does not match the code in the budget sheet</li>
         </ul>
-        <p>Fix: open Budget template and enter an amount, or archive and recreate the budget after updating the COA.</p>
+        <p>Fix: go to the <strong>Budget</strong> tab, open the budget for that SuiteKey, and enter an amount — or archive and recreate the budget after updating the COA.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <div class="faq-section-title">Watchlist</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What is the Watchlist?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>The Watchlist lets you create rules that scan your GL transactions for specific vendors, people, or keywords. Each rule shows the total spending that matches and lets you drill into the individual transactions.</p>
+        <p>Rules can be scoped to a single SuiteKey or applied across all SuiteKeys you have access to.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I create a Watchlist rule?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <div class="step-row"><div class="step-num">1</div><div>Go to the <strong>Watchlist</strong> tab and click <strong>Add rule</strong></div></div>
+        <div class="step-row"><div class="step-num">2</div><div>Enter a <strong>label</strong> (display name) and the <strong>keyword or name</strong> to search for</div></div>
+        <div class="step-row"><div class="step-num">3</div><div>Choose whether to search the <strong>Name</strong> field, the <strong>Description</strong> field, or both</div></div>
+        <div class="step-row"><div class="step-num">4</div><div>Optionally scope it to a specific <strong>SuiteKey</strong>, or leave blank to search all</div></div>
+        <div class="step-row"><div class="step-num">5</div><div>Click <strong>Add rule</strong></div></div>
+        <div class="tip-box">Matching is case-insensitive and partial — "smith" matches "John Smith" and "Smithfield".</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I see the transactions for a rule?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Click the rule card. The app drills into a transaction list showing the date, document number, description, name, and amount for every matching line item. Use the period selector at the top to filter by fiscal year, quarter, month, or custom date range.</p>
+        <p>Click <strong>Watchlist</strong> in the breadcrumb trail to return to the rule list.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I remove a Watchlist rule?<span class="faq-arrow open">&#9654;</span></div>
+      <div class="faq-a">
+        <p>Click <strong>Remove rule</strong> on the rule card. You will be asked to confirm before the rule is deleted. Rules are stored per user — removing a rule only affects your account.</p>
       </div>
     </div>
   </div>
@@ -555,17 +583,17 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
     <div class="faq-item">
       <div class="faq-q" onclick="toggleFaq(this)">Where is my budget sheet stored?<span class="faq-arrow open">&#9654;</span></div>
       <div class="faq-a">
-        <p>In your personal Google Drive, named <strong>Budget - [SuiteKey] - FY[year]</strong>. Open it directly from the Budget template tab via the "Open in Sheets" link or from the Manage tab.</p>
+        <p>In your personal Google Drive, named <strong>Budget - [SuiteKey] - FY[year]</strong>. Open it directly from the <strong>Budget</strong> tab — click Edit (or View) next to a SuiteKey, then use the "Open in Sheets" link in the editor.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-q" onclick="toggleFaq(this)">How do I create a budget for a new fiscal year?<span class="faq-arrow open">&#9654;</span></div>
       <div class="faq-a">
-        <div class="step-row"><div class="step-num">1</div><div>Go to the <strong>Manage</strong> tab</div></div>
+        <div class="step-row"><div class="step-num">1</div><div>Go to the <strong>Budget</strong> tab</div></div>
         <div class="step-row"><div class="step-num">2</div><div>Select the new fiscal year from the dropdown</div></div>
-        <div class="step-row"><div class="step-num">3</div><div>Click <strong>Create budget</strong> next to each SuiteKey you own</div></div>
-        <p>All amounts start at $0. Enter your approved amounts in the Budget template tab.</p>
+        <div class="step-row"><div class="step-num">3</div><div>Click <strong>Create budget</strong> next to each SuiteKey you own — the app creates the sheet and opens the editor automatically</div></div>
+        <p>All amounts start at $0. Enter your approved amounts in the budget editor.</p>
         <div class="tip-box">You can have budgets for multiple fiscal years at the same time.</div>
       </div>
     </div>
@@ -573,8 +601,8 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
     <div class="faq-item">
       <div class="faq-q" onclick="toggleFaq(this)">How do I remove an old or incorrect budget?<span class="faq-arrow open">&#9654;</span></div>
       <div class="faq-a">
-        <p>Go to <strong>Manage</strong>, select the fiscal year, and click <strong>Archive and remove</strong>. The Google Sheet is renamed to <strong>[Archived] Budget - ...</strong> and removed from the app. The file stays in your Drive.</p>
-        <div class="warn-box">To restore an archived budget, rename the file in Drive (remove "[Archived]") then create a new budget for that SuiteKey/FY in Manage - you will need to re-enter the amounts.</div>
+        <p>Go to the <strong>Budget</strong> tab, select the fiscal year, and click <strong>Archive and remove</strong>. The Google Sheet is renamed to <strong>[Archived] Budget - ...</strong> and removed from the app. The file stays in your Drive.</p>
+        <div class="warn-box">To restore an archived budget, rename the file in Drive (remove "[Archived]") then create a new budget for that SuiteKey/FY in the Budget tab — you will need to re-enter the amounts.</div>
       </div>
     </div>
   </div>
@@ -1209,12 +1237,7 @@ function fSelActivity() {
 }
 
 function loadBudgetTab() {
-  hide('budgMain'); hide('budgNoSK'); show('budgInit');
-  if (!suiteKeys.length) { hide('budgInit'); show('budgNoSK'); return; }
-  var skSel = document.getElementById('budgSKSel');
-  skSel.innerHTML = '';
-  for (var i=0;i<suiteKeys.length;i++) skSel.appendChild(new Option(suiteKeys[i].suiteKey, suiteKeys[i].suiteKey));
-  activeBudgSK = skSel.value;
+  hide('budgL1'); hide('budgL2'); show('budgInit');
   var fySel = document.getElementById('budgFYSel');
   fySel.innerHTML = '';
   var fys = (periodData.fiscalYears || []).slice();
@@ -1222,14 +1245,73 @@ function loadBudgetTab() {
   fys.sort(function(a,b){return b-a;});
   for (var i=0;i<fys.length;i++) fySel.appendChild(new Option('FY ' + fys[i], fys[i]));
   activeBudgFY = parseInt(fySel.value);
-  hide('budgInit'); show('budgMain');
+  hide('budgInit'); show('budgL1');
+  loadBudgetList();
+}
+
+function loadBudgetList() {
+  activeBudgFY = parseInt(document.getElementById('budgFYSel').value);
+  var list = document.getElementById('budgList');
+  list.innerHTML = '<div class="loading"><div class="spin"></div>Loading...</div>';
+  google.script.run
+    .withSuccessHandler(function(result) { renderBudgetList(result, activeBudgFY); })
+    .withFailureHandler(function(e) { list.innerHTML = ''; showErr('budgErr', e.message); })
+    .getBudgetStatus(activeBudgFY);
+}
+
+function renderBudgetList(result, fy) {
+  var list = document.getElementById('budgList');
+  list.innerHTML = '';
+  if (!result.budgets || !result.budgets.length) {
+    list.innerHTML = '<div style="font-size:12px;color:#5f6368;">No SuiteKeys found. Check the permissions sheet in Settings.</div>';
+    return;
+  }
+  for (var i = 0; i < result.budgets.length; i++) {
+    (function(b) {
+      var row = document.createElement('div');
+      row.className = 'sk-manage-row';
+      var info = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+      info += '<span class="dot ' + (b.exists ? 'dot-g' : 'dot-gray') + '"></span>';
+      info += '<span class="sk-key">' + b.suiteKey + '</span>';
+      info += '<span style="font-size:12px;color:#5f6368;">' + (b.exists ? b.name : 'No budget') + '</span>';
+      if (b.isOwner) info += '<span style="font-size:10px;background:#e6f4ea;color:#137333;padding:2px 7px;border-radius:12px;">You own this</span>';
+      else info += '<span style="font-size:10px;color:#80868b;">Owner: ' + b.ownerEmail + '</span>';
+      info += '</div>';
+      var btns = '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
+      if (b.exists) btns += '<button class="btn btn-sm" onclick="drillToBudgetEditor(\'' + b.suiteKey + '\',' + fy + ')">' + (b.isOwner ? 'Edit' : 'View') + '</button>';
+      if (b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-red" onclick="removeAddon(\'' + b.suiteKey + '\',' + fy + ',this)">Archive and remove</button>';
+      if (!b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-green" onclick="createAndDrillBudget(\'' + b.suiteKey + '\',' + fy + ',this)">Create budget</button>';
+      btns += '</div>';
+      row.innerHTML = info + btns;
+      list.appendChild(row);
+    })(result.budgets[i]);
+  }
+}
+
+function drillToBudgetEditor(sk, fy) {
+  activeBudgSK = sk;
+  activeBudgFY = fy;
+  hide('budgL1'); show('budgL2');
+  setText('budgL2Title', sk + ' \u2014 FY' + fy);
+  document.getElementById('budgLink').style.display = 'none';
+  hide('budgTableWrap'); hide('budgNoBudget');
+  pendingEdits = {};
   loadBudgetRows();
 }
 
-function onBudgSKChange() { activeBudgSK = document.getElementById('budgSKSel').value; pendingEdits = {}; loadBudgetRows(); }
+function budgGoBack() {
+  hide('budgL2'); show('budgL1');
+}
+
+function createAndDrillBudget(sk, fy, btn) {
+  btn.disabled = true; btn.textContent = 'Creating...';
+  google.script.run
+    .withSuccessHandler(function() { drillToBudgetEditor(sk, fy); })
+    .withFailureHandler(function(e) { btn.disabled = false; btn.textContent = 'Create budget'; showErr('budgErr', e.message); })
+    .createBudgetForSuiteKey(sk, fy);
+}
 
 function loadBudgetRows() {
-  activeBudgFY = parseInt(document.getElementById('budgFYSel').value);
   pendingEdits = {};
   hide('budgTableWrap'); hide('budgNoBudget');
   google.script.run
@@ -1387,72 +1469,13 @@ function collapseAll() {
   renderBudgTable();
 }
 
-function loadManageTab() {
-  hide('manMain'); show('manInit');
-  var fySel = document.getElementById('manFYSel');
-  fySel.innerHTML = '';
-  var fys = (periodData.fiscalYears || []).slice();
-  if (fys.indexOf(currentFY) < 0) fys.unshift(currentFY);
-  fys.sort(function(a,b){return b-a;});
-  for (var i=0;i<fys.length;i++) fySel.appendChild(new Option('FY ' + fys[i], fys[i]));
-  hide('manInit'); show('manMain');
-  loadManage();
-}
-
-function loadManage() {
-  var fy = parseInt(document.getElementById('manFYSel').value);
-  var list = document.getElementById('manList');
-  list.innerHTML = '<div class="loading"><div class="spin"></div>Loading...</div>';
-  google.script.run
-    .withSuccessHandler(function(result) { renderManage(result, fy); })
-    .withFailureHandler(function(e) { list.innerHTML=''; showErr('manErr', e.message); })
-    .getBudgetStatus(fy);
-}
-
-function renderManage(result, fy) {
-  var list = document.getElementById('manList');
-  list.innerHTML = '';
-  if (!result.budgets || !result.budgets.length) {
-    list.innerHTML = '<div style="font-size:12px;color:#5f6368;">No SuiteKeys found. Check the permissions sheet in Settings.</div>';
-    return;
-  }
-  for (var i=0;i<result.budgets.length;i++) {
-    (function(b) {
-      var row = document.createElement('div');
-      row.className = 'sk-manage-row';
-      var info = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
-      info += '<span class="dot ' + (b.exists ? 'dot-g' : 'dot-gray') + '"></span>';
-      info += '<span class="sk-key">' + b.suiteKey + '</span>';
-      info += '<span style="font-size:12px;color:#5f6368;">' + (b.exists ? b.name : 'No budget') + '</span>';
-      if (b.isOwner) info += '<span style="font-size:10px;background:#e6f4ea;color:#137333;padding:2px 7px;border-radius:12px;">You own this</span>';
-      else info += '<span style="font-size:10px;color:#80868b;">Owner: ' + b.ownerEmail + '</span>';
-      info += '</div>';
-      var btns = '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
-      if (b.exists) btns += '<a href="' + b.url + '" target="_blank" class="btn btn-sm" style="text-decoration:none;">Open in Sheets</a>';
-      if (b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-red" onclick="removeAddon(\'' + b.suiteKey + '\',' + fy + ',this)">Archive and remove</button>';
-      if (!b.exists && b.isOwner) btns += '<button class="btn btn-sm btn-green" onclick="createFromManage(\'' + b.suiteKey + '\',' + fy + ',this)">Create budget</button>';
-      btns += '</div>';
-      row.innerHTML = info + btns;
-      list.appendChild(row);
-    })(result.budgets[i]);
-  }
-}
-
 function removeAddon(sk, fy, btn) {
-  if (!confirm('Archive this budget sheet and remove from the add-on?')) return;
+  if (!confirm('Archive this budget sheet and remove from the app?')) return;
   btn.disabled = true; btn.textContent = 'Removing...';
   google.script.run
-    .withSuccessHandler(function() { loadManage(); })
-    .withFailureHandler(function(e) { btn.disabled=false; btn.textContent='Archive and remove'; showErr('manErr',e.message); })
+    .withSuccessHandler(function() { loadBudgetList(); })
+    .withFailureHandler(function(e) { btn.disabled = false; btn.textContent = 'Archive and remove'; showErr('budgErr', e.message); })
     .removeBudgetFromAddon(sk, fy);
-}
-
-function createFromManage(sk, fy, btn) {
-  btn.disabled = true; btn.textContent = 'Creating...';
-  google.script.run
-    .withSuccessHandler(function() { loadManage(); })
-    .withFailureHandler(function(e) { btn.disabled=false; btn.textContent='Create budget'; showErr('manErr',e.message); })
-    .createBudgetForSuiteKey(sk, fy);
 }
 
 function loadGLTabs(preselect) {
@@ -1558,7 +1581,6 @@ function showPage(id, btn) {
   document.getElementById('page-' + id).classList.add('active');
   btn.classList.add('active');
   if (id === 'budget') loadBudgetTab();
-  if (id === 'manage') loadManageTab();
   if (id === 'watch') loadWatchTab();
 }
 
