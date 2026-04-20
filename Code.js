@@ -117,6 +117,7 @@ function getInitialData() {
 
     // Step 3: permissions data (from ScriptProperties cache or direct sheet read)
     let suiteKeys = [], skError = null;
+    console.log('getInitialData: step3 permissions permId=' + (sp.getProperty(SPROP_PERMISSIONS_ID)||'(none)'));
     const permResult = getPermissionsData();
     log.push('perm:' + (Date.now()-t0) + 'ms fromCache:' + permResult.fromCache);
     if (permResult.data) {
@@ -148,6 +149,7 @@ function getInitialData() {
     let   glError = null;
 
     if (glId) {
+      console.log('getInitialData: step4 opening GL sheet ' + glId + ' tab=' + (glTab||'(first)'));
       try {
         const gss = SpreadsheetApp.openById(glId);
         log.push('gl_open:' + (Date.now()-t0) + 'ms');

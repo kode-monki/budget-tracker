@@ -842,7 +842,13 @@ google.script.run
           .withFailureHandler(function(e) {
             hideDiag();
             hide('dashInit');
-            showErr('dashErr', 'Error loading data: ' + e.message);
+            var msg = 'Error loading data: ' + e.message;
+            if (r2.glId) {
+              var glUrl = 'https://docs.google.com/spreadsheets/d/' + r2.glId;
+              msg += ' &mdash; possible cause: cannot access <a href="' + glUrl + '" target="_blank">your GL sheet</a> (ID: ' + r2.glId + ')';
+            }
+            if (r2.permId) msg += '<br>Permissions sheet ID: ' + r2.permId;
+            showErr('dashErr', msg);
           })
           .getInitialData();
       })
