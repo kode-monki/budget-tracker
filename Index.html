@@ -372,10 +372,9 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
       <button class="btn btn-green" onclick="createBudget()">Create budget</button>
     </div>
     <div id="budgTableWrap" style="display:none;">
-      <div style="border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:10px;">
-        <div style="overflow-y:auto;max-height:600px;">
+      <div style="border:1px solid #e0e0e0;border-radius:8px;overflow-y:auto;max-height:600px;margin-bottom:10px;">
           <table class="btable">
-            <thead><tr>
+            <thead style="position:sticky;top:0;z-index:1;background:#f8f9fa;"><tr>
               <th style="width:6%;">Code</th>
               <th style="width:20%;">Account name</th>
               <th style="width:9%;">Group</th>
@@ -387,7 +386,6 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
             </tr></thead>
             <tbody id="budgBody"></tbody>
           </table>
-        </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <span style="font-size:12px;color:#5f6368;">Total: <strong id="budgTotal">$0</strong></span>

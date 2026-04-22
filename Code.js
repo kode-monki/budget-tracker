@@ -519,8 +519,14 @@ function createBudgetForSuiteKey(suiteKey, fiscalYear) {
   const sheet= ss.getActiveSheet();
   sheet.setName('Budget FY' + fy);
 
+  // Reference data for new columns
+  const priorData = readBudgetSheet(suiteKey, fy - 1);
+  const priorMap  = {};
+  (priorData.rows || []).forEach(r => { priorMap[r.code] = Math.abs(r.budget); });
+  const ytdMap = calcTotalsForSuiteKey(suiteKey, fy, null, 'fiscal_year', null, null);
+
   // Header row
-  const headers = ['Code', 'Account name', 'Group', 'Section', 'Description', 'FY' + fy + ' Budget', 'Notes'];
+  const headers = ['Code', 'Account name', 'Group', 'Section', 'Description', 'FY' + fy + ' Budget', 'Notes', 'FY' + (fy - 1) + ' Budget', 'YTD Actuals'];
   sheet.getRange(1, 1, 1, headers.length)
        .setValues([headers])
        .setBackground('#1a73e8')
@@ -535,15 +541,25 @@ function createBudgetForSuiteKey(suiteKey, fiscalYear) {
 
   accounts.forEach(a => {
     if (a.section !== lastSection) {
-      rows.push(['', a.section.toUpperCase(), '', '', '', '', '']);
+      rows.push(['', a.section.toUpperCase(), '', '', '', '', '', '', '']);
       lastSection = a.section;
     }
-    rows.push([a.code, a.name, a.group, a.section, a.desc, 0, '']);
+    const prior = priorMap[a.code] !== undefined ? priorMap[a.code] : '';
+    const ytd   = Math.abs(ytdMap[a.code] || 0) || '';
+    rows.push([a.code, a.name, a.group, a.section, a.desc, 0, '', prior, ytd]);
   });
 
   if (rows.length) {
     sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
     sheet.getRange(2, BC_BUDGET + 1, rows.length, 1).setNumberFormat('$#,##0.00');
+    // Format reference columns as currency, light gray to indicate read-only
+    const refCols = [headers.length - 1, headers.length]; // FY prior + YTD
+    refCols.forEach(col => {
+      sheet.getRange(2, col, rows.length, 1)
+           .setNumberFormat('$#,##0.00')
+           .setBackground('#f8f9fa')
+           .setFontColor('#5f6368');
+    });
 
     // Style section divider rows
     rows.forEach((r, i) => {
@@ -555,7 +571,7 @@ function createBudgetForSuiteKey(suiteKey, fiscalYear) {
   }
 
   // Column widths
-  [70, 240, 130, 80, 320, 130, 200].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
+  [70, 240, 130, 80, 320, 130, 200, 130, 120].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
 
   up.setProperty(propKey, ss.getId());
   return { fileId: ss.getId(), name, url: ss.getUrl(), alreadyExisted: false };
