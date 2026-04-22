@@ -922,11 +922,29 @@ function calcTotalsForSuiteKey(suiteKey, fiscalYear, period, periodType, dateFro
   return all[suiteKey] || {};
 }
 
+let _accountTypeCache = null;
+
+function getAccountTypeMap() {
+  if (_accountTypeCache) return _accountTypeCache;
+  const accounts = getCanonicalAccounts();
+  const map = {};
+  accounts.forEach(a => {
+    map[a.code] = a.type || (a.section === 'Income' ? 'income' : 'expense');
+  });
+  _accountTypeCache = map;
+  return map;
+}
+
 function calcAmount(row, code) {
-  const n      = parseInt(code, 10);
-  const debit  = parseMoney(row[TXCOL_DEBIT]);
-  const credit = parseMoney(row[TXCOL_CREDIT]);
-  const local  = parseMoney(row[TXCOL_LOCAL_AMT]);
+  const typeMap = getAccountTypeMap();
+  const type    = typeMap[code];
+  const debit   = parseMoney(row[TXCOL_DEBIT]);
+  const credit  = parseMoney(row[TXCOL_CREDIT]);
+  const local   = parseMoney(row[TXCOL_LOCAL_AMT]);
+  if (type === 'income')  return credit - debit;
+  if (type === 'expense') return debit  - credit;
+  // Fallback for codes not in CoA
+  const n = parseInt(code, 10);
   if (n >= 4000 && n <= 6999) return credit - debit;
   if (n >= 7000 && n <= 9999) return debit  - credit;
   return local;
@@ -964,6 +982,12 @@ function getCanonicalAccounts() {
   return getBuiltinAccounts();
 }
 
+function isIncomeCategory(cat) {
+  const c = String(cat || '').toLowerCase().trim();
+  return c.includes('income') || c.includes('sales') || c.includes('revenue') ||
+         c.includes('contribut') || c.includes('grant');
+}
+
 function parseCOASheet(sheet) {
   const data    = sheet.getDataRange().getValues();
   const results = [];
@@ -985,11 +1009,13 @@ function parseCOASheet(sheet) {
     if (seen.has(codeStr)) continue;
     seen.add(codeStr);
 
+    const isIncome = isIncomeCategory(rawCat);
     results.push({
       code     : codeStr,
       name     : rawName || ('Account ' + codeStr),
       group    : deriveGroupFromCategory(rawCat, codeNum),
-      section  : codeNum >= 4000 && codeNum <= 6999 ? 'Income' : 'Expense',
+      section  : isIncome ? 'Income' : 'Expense',
+      type     : isIncome ? 'income' : 'expense',
       desc     : rawDesc,
       fullName : codeStr + ': ' + (rawName || ''),
     });
@@ -1026,7 +1052,7 @@ function deriveGroupFromCategory(category, codeNum) {
 }
 
 function getBuiltinAccounts() {
-  return [
+  const accounts = [
     { code:'4000', name:'Contributions',                     group:'Contributions',   section:'Income',  desc:'Donor contributions and grants' },
     { code:'5010', name:'Product Sales',                     group:'Sales & Service', section:'Income',  desc:'Revenue from product sales' },
     { code:'5110', name:'Service Income - Non-Professional', group:'Sales & Service', section:'Income',  desc:'Non-professional service fees' },
@@ -1045,6 +1071,8 @@ function getBuiltinAccounts() {
     { code:'8285', name:'Internal Insurance',                group:'Internal',        section:'Expense', desc:'Insurance premiums allocated internally between OUs' },
     { code:'8525', name:'Internal Other Services & Fees',    group:'Internal',        section:'Expense', desc:'Fees for services provided by other SIL operating units' },
   ];
+  accounts.forEach(a => { a.type = a.section === 'Income' ? 'income' : 'expense'; });
+  return accounts;
 }
 
 
