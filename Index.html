@@ -278,7 +278,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
       <div class="stat-box"><div class="stat-label">Budget</div><div class="stat-val" id="l2Budget">-</div></div>
       <div class="stat-box"><div class="stat-label">Actuals</div><div class="stat-val" id="l2Actuals">-</div></div>
       <div class="stat-box"><div class="stat-label">Remaining</div><div class="stat-val" id="l2Remain">-</div></div>
-      <div class="stat-box"><div class="stat-label">Over budget</div><div class="stat-val" id="l2Over">0</div></div>
+      <div class="stat-box" id="l2OverBox"><div class="stat-label">Over budget</div><div class="stat-val" id="l2Over">0</div></div>
     </div>
     <div class="overall">
       <div style="display:flex;justify-content:space-between;align-items:baseline;">
@@ -376,12 +376,14 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
         <div style="overflow-y:auto;max-height:600px;">
           <table class="btable">
             <thead><tr>
-              <th style="width:7%;">Code</th>
-              <th style="width:25%;">Account name</th>
-              <th style="width:13%;">Group</th>
-              <th style="width:29%;">Description</th>
-              <th style="text-align:right;width:16%;">Budget</th>
-              <th style="text-align:right;width:10%;">% of total</th>
+              <th style="width:6%;">Code</th>
+              <th style="width:20%;">Account name</th>
+              <th style="width:9%;">Group</th>
+              <th style="width:13%;">Description</th>
+              <th style="text-align:right;width:13%;">Prior yr budget</th>
+              <th style="text-align:right;width:14%;">Budget</th>
+              <th style="text-align:right;width:13%;">YTD actuals</th>
+              <th style="text-align:right;width:12%;">% of total</th>
             </tr></thead>
             <tbody id="budgBody"></tbody>
           </table>
@@ -807,11 +809,12 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
       <div class="txn-panel">
         <div style="max-height:520px;overflow-y:auto;">
           <table class="txn-table">
-            <thead><tr>
+            <thead style="position:sticky;top:0;z-index:1;background:#f8f9fa;"><tr>
               <th style="width:90px;">Date</th>
               <th style="width:80px;">Doc #</th>
               <th>Description</th>
               <th style="width:140px;">Name</th>
+              <th style="width:80px;" id="watchTxnAcctHead">Account</th>
               <th style="width:120px;" id="watchTxnSKHead">SuiteKey</th>
               <th style="text-align:right;width:90px;">Amount</th>
             </tr></thead>
@@ -837,10 +840,13 @@ var suiteKeys = [];
 var allL2Rows = [];
 var visibleCodes = {};
 var spendOverride = false;
+var overBudgetOnly = false;
 var budgetRows = [];
 var budgetReadonly = false;
 var pendingEdits = {};
 var collapsedGrps = {};
+var priorBudgetMap = {};
+var ytdActualsMap = {};
 var selectedGLTab = '';
 var activeSK = null;
 var activeBudgSK = null;
@@ -1075,6 +1081,7 @@ function drillToL2(summary) {
   allL2Rows = [];
   visibleCodes = {};
   spendOverride = false;
+  overBudgetOnly = false;
   hide('filterWrap');
   setText('l2Title', summary.suiteKey);
   document.getElementById('l2RoBadge').style.display = summary.readonly ? '' : 'none';
@@ -1111,7 +1118,9 @@ function getFilteredRows() {
   var rows = [];
   for (var i = 0; i < allL2Rows.length; i++) {
     var r = allL2Rows[i];
-    if (visibleCodes[r.code]) rows.push(r);
+    if (overBudgetOnly) {
+      if (r.actuals > r.budget) rows.push(r);
+    } else if (visibleCodes[r.code]) rows.push(r);
     else if (spendOverride && Math.abs(r.actuals) > 0) rows.push(r);
   }
   return rows;
@@ -1122,6 +1131,21 @@ function renderL2(rows) {
   for (var i = 0; i < rows.length; i++) { if (rows[i].actuals > rows[i].budget) overCount++; }
   setText('l2Over', String(overCount));
   document.getElementById('l2Over').className = 'stat-val' + (overCount > 0 ? ' danger' : '');
+  var overBox = document.getElementById('l2OverBox');
+  if (overCount > 0 || overBudgetOnly) {
+    overBox.style.cursor = 'pointer';
+    overBox.title = overBudgetOnly ? 'Showing overbudget only — click to show all' : 'Click to show only overbudget accounts';
+    overBox.style.outline = overBudgetOnly ? '2px solid #c5221f' : '';
+    overBox.onclick = function() {
+      overBudgetOnly = !overBudgetOnly;
+      renderL2(getFilteredRows());
+    };
+  } else {
+    overBox.style.cursor = '';
+    overBox.style.outline = '';
+    overBox.title = '';
+    overBox.onclick = null;
+  }
   var list = document.getElementById('catList');
   list.innerHTML = '';
   if (!rows.length) {
@@ -1370,6 +1394,8 @@ function loadBudgetRows() {
     .withSuccessHandler(function(result) {
       budgetRows = result.rows;
       budgetReadonly = result.readonly;
+      priorBudgetMap = result.priorBudget || {};
+      ytdActualsMap = result.ytdActuals || {};
       var sk = null;
       for (var i=0;i<suiteKeys.length;i++) { if (suiteKeys[i].suiteKey===activeBudgSK) { sk=suiteKeys[i]; break; } }
       if (result.missing) {
@@ -1396,7 +1422,7 @@ function loadBudgetRows() {
       renderBudgTable();
     })
     .withFailureHandler(function(e) { showErr('budgErr', e.message); })
-    .readBudgetSheet(activeBudgSK, activeBudgFY);
+    .getBudgetPageData(activeBudgSK, activeBudgFY);
 }
 
 function createBudget() {
@@ -1442,12 +1468,19 @@ function renderBudgTable() {
       var code = filtered[j].code;
       gTotal += Math.abs(pendingEdits[code]!==undefined ? pendingEdits[code] : filtered[j].budget);
     }
+    var gPrior = 0, gYtd = 0;
+    for (var j=0;j<filtered.length;j++) {
+      gPrior += priorBudgetMap[filtered[j].code] || 0;
+      gYtd   += Math.abs(ytdActualsMap[filtered[j].code] || 0);
+    }
     var collapsed = !!collapsedGrps[gkey];
     var hdr = document.createElement('tr');
     hdr.className = 'grp-tr';
     hdr.innerHTML = '<td colspan="4"><span class="chev' + (collapsed ? '' : ' open') + '">&#9654;</span>' + gkey +
       ' <span style="font-weight:normal;color:#80868b;font-size:10px;">(' + filtered.length + ')</span></td>' +
+      '<td style="text-align:right;color:#80868b;">' + (gPrior ? fmt(gPrior) : '—') + '</td>' +
       '<td style="text-align:right;">' + fmt(gTotal) + '</td>' +
+      '<td style="text-align:right;color:#80868b;">' + (gYtd ? fmt(gYtd) : '—') + '</td>' +
       '<td style="text-align:right;">' + (grand ? Math.round(gTotal/grand*100) : 0) + '%</td>';
     (function(gk) {
       hdr.onclick = function() { if(collapsedGrps[gk]) delete collapsedGrps[gk]; else collapsedGrps[gk]=true; renderBudgTable(); };
@@ -1459,11 +1492,16 @@ function renderBudgTable() {
           var bv = pendingEdits[r.code]!==undefined ? pendingEdits[r.code] : Math.abs(r.budget);
           var tr = document.createElement('tr');
           var descShort = r.desc && r.desc.length > 40 ? r.desc.slice(0,40)+'...' : (r.desc||'');
+          var priorV = priorBudgetMap[r.code];
+          var ytdV   = Math.abs(ytdActualsMap[r.code] || 0);
+          var ytdOver = ytdV > bv;
           tr.innerHTML = '<td style="color:#80868b;font-size:11px;">' + r.code + '</td>' +
             '<td>' + r.name + '</td>' +
             '<td style="color:#80868b;font-size:11px;">' + r.group + '</td>' +
             '<td style="font-size:11px;color:#5f6368;" title="' + (r.desc||'') + '">' + descShort + '</td>' +
+            '<td style="text-align:right;color:#80868b;font-size:12px;">' + (priorV !== undefined ? fmt(priorV) : '—') + '</td>' +
             '<td style="text-align:right;"><input class="bud-input" type="text" value="' + Math.round(bv).toLocaleString() + '" data-code="' + r.code + '"' + (budgetReadonly?' readonly':'') + '></td>' +
+            '<td style="text-align:right;font-size:12px;' + (ytdOver ? 'color:#c5221f;font-weight:bold;' : 'color:#5f6368;') + '">' + (ytdV ? fmt(ytdV) : '—') + '</td>' +
             '<td style="text-align:right;color:#5f6368;font-size:11px;">' + (grand ? Math.round(Math.abs(bv)/grand*100) : 0) + '%</td>';
           var inp = tr.querySelector('input');
           if (inp && !budgetReadonly) {
@@ -1475,11 +1513,18 @@ function renderBudgTable() {
       }
     }
   }
+  var grandPrior = 0, grandYtd = 0;
+  for (var i=0;i<budgetRows.length;i++) {
+    grandPrior += priorBudgetMap[budgetRows[i].code] || 0;
+    grandYtd   += Math.abs(ytdActualsMap[budgetRows[i].code] || 0);
+  }
   var foot = document.createElement('tr');
   foot.style.background = '#f8f9fa';
   foot.style.borderTop = '1px solid #dadce0';
   foot.innerHTML = '<td colspan="4" style="font-weight:bold;padding:8px 10px;font-size:12px;">Grand total</td>' +
+    '<td style="text-align:right;font-weight:bold;padding:8px 10px;color:#80868b;">' + (grandPrior ? fmt(grandPrior) : '—') + '</td>' +
     '<td style="text-align:right;font-weight:bold;padding:8px 10px;">' + fmt(grand) + '</td>' +
+    '<td style="text-align:right;font-weight:bold;padding:8px 10px;' + (grandYtd > grand ? 'color:#c5221f;' : 'color:#5f6368;') + '">' + (grandYtd ? fmt(grandYtd) : '—') + '</td>' +
     '<td style="text-align:right;font-weight:bold;padding:8px 10px;">100%</td>';
   body.appendChild(foot);
   setText('budgTotal', fmt(grand));
@@ -1806,6 +1851,7 @@ function drillToWatchTxns(rule, res) {
           '<td style="color:#5f6368;white-space:nowrap;">' + t.docNum + '</td>' +
           '<td>' + ds + '</td>' +
           '<td style="color:#5f6368;">' + ns + '</td>' +
+          '<td style="color:#5f6368;font-size:11px;white-space:nowrap;">' + (t.account || '') + '</td>' +
           skCell +
           '<td style="text-align:right;font-weight:bold;color:' + ac + ';">' + af + '</td>';
         body.appendChild(tr);

@@ -617,6 +617,26 @@ function readBudgetSheet(suiteKey, fiscalYear) {
   return _budgetCache[cacheKey];
 }
 
+/** Returns budget rows plus prior-year budget map and YTD actuals for the Budget tab. */
+function getBudgetPageData(suiteKey, fiscalYear) {
+  const fy      = parseInt(fiscalYear);
+  const current = readBudgetSheet(suiteKey, fy);
+  const prior   = readBudgetSheet(suiteKey, fy - 1);
+  const ytd     = calcTotalsForSuiteKey(suiteKey, fiscalYear, null, 'fiscal_year', null, null);
+
+  const priorBudget = {};
+  (prior.rows || []).forEach(r => { priorBudget[r.code] = Math.abs(r.budget); });
+
+  return {
+    rows        : current.rows,
+    readonly    : current.readonly,
+    missing     : current.missing,
+    fileId      : current.fileId,
+    priorBudget,
+    ytdActuals  : ytd,
+  };
+}
+
 /** Saves edited budget amounts. Only works if the caller is the owner. */
 function saveBudgetAmounts(suiteKey, fiscalYear, updates) {
   const fy  = parseInt(fiscalYear);
@@ -1070,6 +1090,7 @@ function getWatchTransactions(rule, fiscalYear, period, periodType, dateFrom, da
         docNum     : String(row[TXCOL_DOC_NUM]     || ''),
         desc       : String(row[TXCOL_DESC]        || ''),
         name       : String(row[TXCOL_NAME]        || ''),
+        account    : sectionCode,
         suiteKey   : txSuiteKey,
         amount     : calcAmount(row, sectionCode),
       });
