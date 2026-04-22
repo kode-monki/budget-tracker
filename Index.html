@@ -8,7 +8,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial,sans-serif;font-size:13px;background:#f8f9fa;color:#202124;}
 .shell{min-height:100vh;}
-.nav{display:flex;align-items:center;background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;position:sticky;top:0;z-index:20;}
+.nav{display:flex;align-items:center;background:#CCEDF9;border-bottom:1px solid #a8d8f0;padding:0 24px;position:sticky;top:0;z-index:20;}
 .nav-brand{font-size:16px;font-weight:bold;color:#202124;margin-right:24px;padding:14px 0;cursor:pointer;user-select:none;}
 .nav-brand:hover{color:#1a73e8;}
 .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;max-width:820px;margin:0 auto 28px;}
@@ -154,7 +154,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
 <div class="shell">
 
 <div class="nav">
-  <span class="nav-brand" onclick="goHome()"><img src="https://raw.githubusercontent.com/kode-monki/budget-tracker/main/budget-tracker-icon.png" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;">Budget Visualizer</span>
+  <span class="nav-brand" onclick="goHome()"><img src="https://global.sil.org/wp-content/uploads/sites/2/2024/06/sil_glyph_logo_taiheritagepro_rgb-2048x1102.png" style="height:22px;width:auto;vertical-align:middle;margin-right:8px;">Budget Visualizer</span>
   <div class="nav-tabs">
     <button class="nav-btn" onclick="showPage('dash',this)">Dashboard</button>
     <button class="nav-btn" onclick="showPage('watch',this)">Watchlist</button>
@@ -170,7 +170,7 @@ select,input{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid 
 
 <div id="page-home" class="page active">
   <div style="text-align:center;padding:40px 0 28px;">
-    <img src="https://raw.githubusercontent.com/kode-monki/budget-tracker/main/budget-tracker-icon.png" style="width:52px;height:52px;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;">
+    <img src="https://global.sil.org/wp-content/uploads/sites/2/2024/06/sil_glyph_logo_taiheritagepro_rgb-2048x1102.png" style="height:48px;width:auto;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;">
     <div style="font-size:22px;font-weight:bold;color:#202124;margin-bottom:6px;">Budget Visualizer</div>
     <div style="font-size:14px;color:#5f6368;">Select a section to get started</div>
   </div>
@@ -1968,8 +1968,10 @@ function showErr(id, msg) {
 }
 </script>
 
-
-
+<div style="text-align:center;padding:16px 24px;font-size:11px;color:#5f6368;border-top:1px solid #e0e0e0;background:#f8f9fa;margin-top:32px;">
+  Brought to you by GTIS and Claude &nbsp;·&nbsp;
+  <a href="https://github.com/kode-monki/budget-tracker/releases" target="_blank" style="color:#1a73e8;text-decoration:none;">Release notes</a>
+</div>
 
 </body>
 </html>
